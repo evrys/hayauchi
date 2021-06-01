@@ -59,7 +59,7 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Watch } from "vue-property-decorator"
+import { Component, Vue } from "vue-property-decorator"
 import _ from "lodash"
 import * as wanakana from "wanakana"
 import Game from "./Game.vue"
@@ -68,8 +68,6 @@ window.wanakana = wanakana
 // @ts-ignore
 import _sentences from "../data/lines.tsv"
 import { GameOptions } from "./types"
-
-type Kanatype = 'hiragana'|'katakana'|'both'
 
 @Component({
   components: {

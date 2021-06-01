@@ -15,7 +15,6 @@
     "bootswatch": "^5.0.1",
     "core-js": "^3.6.5",
     "csv-loader": "^3.0.3",
-    "hiragana": "^0.0.5",
     "lodash": "^4.17.21",
     "peerjs": "^1.3.2",
     "pixi.js": "^6.0.4",
