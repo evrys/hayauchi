@@ -10,6 +10,7 @@
         Score: <span>{{score}}</span>
         WPM: <span>{{wpm}}</span>
         Misses: <span class="misses">{{wordsMissed}}</span>
+		Missed word: <span>{{missedWord}}</span>
       </div>
     </div>
   </main>
@@ -91,6 +92,7 @@ export default class App extends Vue {
   score: number = 0
   wordsCompleted: number = 0
   wordsMissed: number = 0
+  missedWord: string = ""
 
   startTime: number = Date.now()
   timestamp: number = Date.now()
@@ -272,6 +274,7 @@ export default class App extends Vue {
       }
 
       if (word.obj.x > this.width) {
+		this.missedWord = wanakana.toRomaji(word.japanese)
         missedWords.push(word)
       }
     }
