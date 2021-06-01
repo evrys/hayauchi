@@ -194,8 +194,7 @@ export default class App extends Vue {
     this.pixi.ticker.add(this.frame)
     document.getElementsByTagName("input")[0].focus()
     this.onResize()
-    while (this.freeSlots.length)
-      this.addRandomWord()
+    this.addRandomWord()
   }
 
   onResize() {}

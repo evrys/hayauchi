@@ -28,7 +28,7 @@
           </label>
         </div>
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" value="" id="pokemon" v-model="options.pokemon" :disabled="!options.katakana">
+          <input class="form-check-input" type="checkbox" value="" id="pokemon" v-model="options.pokemon">
           <label class="form-check-label" for="pokemon">
             Pokémon Names
           </label>
