@@ -88,11 +88,17 @@ export default class App extends Vue {
   @Prop({ type: Object, required: true }) options!: GameOptions
 
   attempt: string = ""
-  prevAttempt: string = ""
-  attemptBackspaces: number = 0
-  playedVoiceAlready: boolean = false
+  score: number = 0
+  wordsCompleted: number = 0
+  wordsMissed: number = 0
+
   startTime: number = Date.now()
-  prevTime: number = Date.now()
+  timestamp: number = Date.now()
+
+  get timeTaken() {
+    return this.timestamp = this.startTime
+  }
+
   wordScale: number = 1
 
   wordStyle = new PIXI.TextStyle({
@@ -105,10 +111,6 @@ export default class App extends Vue {
     fill: '#f1a52e'
   })
 
-  score: number = 0
-  wordsCompleted: number = 0
-  wordsMissed: number = 0
-  timeTaken: number = 1
 
   width: number = 800 / window.devicePixelRatio
   height: number = 600 / window.devicePixelRatio
@@ -122,6 +124,7 @@ export default class App extends Vue {
 
   translations = new PIXI.Container()
 
+  /** How many words can potentially be in play at once */
   get totalSlots() {
     return 15
   }
@@ -197,7 +200,9 @@ export default class App extends Vue {
     this.addRandomWord()
   }
 
-  onResize() {}
+  onResize() {
+    // TODO
+  }
 
   addRandomWord() {
     const { freeSlots } = this
@@ -238,7 +243,7 @@ export default class App extends Vue {
 
   frame(deltaTime: number) {
     if (this.gameOver) {
-      
+      // TODO
     }
 
     const timestamp = Date.now()
@@ -246,7 +251,7 @@ export default class App extends Vue {
       this.addRandomWord()
       this.lastWordAddedAt = timestamp
     }
-    this.timeTaken = timestamp - this.startTime
+    this.timestamp = timestamp
 
     const missedWords: Word[] = []
     for (const word of this.words) {
@@ -355,10 +360,6 @@ export default class App extends Vue {
     return { donePart, remainingPart }
   }
 
-  get maxLength() {
-    return 5 + Math.floor(this.score / 20)
-  }
-
   get voice(): SpeechSynthesisVoice | null {
     const { options } = this
     if (options.voice === null)
@@ -422,10 +423,7 @@ input
   span
     display: inline-block
     min-width: 2rem
-    color: #3498db 	
-
-  // span.misses
-  //   color: #e74c3c
+    color: #3498db
 
 .controls
   margin-top: 2rem
