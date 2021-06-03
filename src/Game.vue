@@ -10,14 +10,13 @@
           <table>
             <tr>
               <td>Score:</td>
-              <td>{{score}}</td>
+              <td>{{ score }}</td>
             </tr>
             <tr>
               <td>WPM:</td>
-              <td>{{wpm}}</td>
+              <td>{{ wpm }}</td>
             </tr>
           </table>
-
 
           <form @submit.prevent="showLeaderboard">
             <input
@@ -28,8 +27,12 @@
               autofocus
             />
             <div class="d-flex">
-              <button type="submit" class="btn btn-primary">Record Score</button>
-              <button class="btn btn-sm ms-auto" @click.prevent="$emit('exit')">Exit to Menu</button>
+              <button type="submit" class="btn btn-primary">
+                Record Score
+              </button>
+              <button class="btn btn-sm ms-auto" @click.prevent="$emit('exit')">
+                Exit to Menu
+              </button>
             </div>
           </form>
         </div>
@@ -38,23 +41,29 @@
           <table class="table">
             <thead>
               <tr>
-                <th>Rank</th>
+                <th v-if="leaderboard.length && leaderboard[0].rank">Rank</th>
                 <th>Name</th>
                 <th>Score</th>
                 <th>WPM</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="entry in leaderboard" :key="entry.id" :class="{ mine: entry.mine }">
-                <td>{{1+entry.rank}}.</td>
-                <td v-if="entry.mine">{{nameForLeaderboard}}</td>
+              <tr
+                v-for="entry in leaderboard"
+                :key="entry.id"
+                :class="{ mine: entry.mine }"
+              >
+                <td v-if="entry.rank">{{ entry.rank }}.</td>
+                <td v-if="entry.mine">{{ nameForLeaderboard }}</td>
                 <td v-else>{{ entry.name }}</td>
                 <td>{{ entry.score }}</td>
                 <td>{{ entry.wpm }}</td>
               </tr>
             </tbody>
           </table>
-          <button class="btn btn-sm ms-auto" @click.prevent="$emit('exit')">Exit to Menu</button>
+          <button class="btn btn-sm ms-auto" @click.prevent="$emit('exit')">
+            Exit to Menu
+          </button>
         </div>
       </div>
     </div>
@@ -156,18 +165,20 @@ type Word = {
 }
 
 type LeaderboardEntry = {
-  id: string
-  name: string
   rank: number
   score: number
   wpm: number
-} | {
-  id: 'mine'
-  mine: true
-  rank: number
-  score: number
-  wpm: number
-}
+  timestamp: number
+} & (
+  | {
+      id: string
+      name: string
+    }
+  | {
+      id: "mine"
+      mine: true
+    }
+)
 
 @Component({
   components: {},
@@ -251,13 +262,13 @@ export default class App extends Vue {
   // }
 
   created() {
-    (window as any).game = this
+    ;(window as any).game = this
 
     if (this.options.pokemon) this.wordset.push(...pokenames)
 
     if (this.options.loanwords) this.wordset.push(...loanwords)
 
-    this.wordset = _.shuffle(_.uniqBy(this.wordset, w => w[0]))
+    this.wordset = _.shuffle(_.uniqBy(this.wordset, (w) => w[0]))
     // this.wordset = _.reverse(_.uniqBy(this.wordset, (w) => w[0]))
   }
 
@@ -292,7 +303,6 @@ export default class App extends Vue {
   destroyed() {
     window.removeEventListener("keydown", this.keydown)
   }
-
 
   keydown(ev: KeyboardEvent) {
     if (ev.key === "Escape") {
@@ -357,6 +367,13 @@ export default class App extends Vue {
     if (this.wordsMissed >= 10) {
       this.gameOver = true
       this.pixi.ticker.remove(this.frame)
+
+      if (this.score === 0) {
+        // Just go straight back to the menu
+        this.$emit("exit")
+        return
+      }
+
       this.fetchLeaderboard()
       this.$nextTick(() =>
         (document.getElementsByClassName(
@@ -518,13 +535,12 @@ export default class App extends Vue {
     const db = getFirestore()
     const leaderboardRef = collection(db, "leaderboard")
 
-    // TODO this isn't a scalable way of calculating rank
-    const qrank = query(
+    const top50q = query(
       leaderboardRef,
-      where("score", ">=", this.score),
       orderBy("score", "desc"),
       orderBy("wpm", "desc"),
-      orderBy("timestamp", "asc")
+      orderBy("timestamp", "asc"),
+      limit(50)
     )
     const q1 = query(
       leaderboardRef,
@@ -543,50 +559,76 @@ export default class App extends Vue {
       limit(10)
     )
 
-    const [rankr, q1r, q2r] = await Promise.all([
-      getDocs(qrank),
+    const [top50r, q1r, q2r] = await Promise.all([
+      getDocs(top50q),
       getDocs(q1),
       getDocs(q2),
     ])
-    const rank = rankr.size
 
+    const top50Scores = top50r.docs.map((d) => d.data())
     const higherScores = q1r.docs.map((d) => d.data())
     const lowerScores = q2r.docs.map((d) => d.data())
 
-    const leaderboard = [{
-      id: 'mine',
-      rank: rank,
-      score: this.score,
-      wpm: this.wpm,
-      mine: true
-    }] as LeaderboardEntry[]
-
-    while (leaderboard.length < 10) {
-      const higher = higherScores.pop()
-      const lower = lowerScores.shift()
-
-
-      if (!higher && !lower)
+    // Check if we're in the top 50; if so, we get ranked numerically
+    let rank: number|null = null
+    for (let i = 0; i < top50Scores.length; i++) {
+      const entry = top50Scores[i]
+      if (this.score > entry.score || (this.score === entry.score && this.wpm > entry.wpm)) {
+        rank = 1+i
         break
-      
-      if (higher) {
-        higher.rank = leaderboard[0].rank - 1
-        leaderboard.unshift(higher as LeaderboardEntry)
-      } 
-      
-      if (lower) {
-        if (lower.score === this.score && lower.wpm >= this.wpm) {
-          // It's actually higher rank
-          lower.rank = leaderboard[0].rank - 1
-          leaderboard.unshift(lower as LeaderboardEntry)
-        } else {
-          lower.rank = leaderboard[leaderboard.length-1].rank + 1
-          leaderboard.push(lower as LeaderboardEntry)
-        }
       }
     }
 
-    this.leaderboard = leaderboard
+    const mine = {
+      id: "mine",
+      rank: rank,
+      score: this.score,
+      wpm: this.wpm,
+      timestamp: Infinity,
+      mine: true,
+    }
+
+    let nearbyScores = higherScores
+      .concat([mine])
+      .concat(lowerScores) as LeaderboardEntry[]
+
+    // We need to recalc the ordering to make sure our score goes in the right place
+    nearbyScores = _.orderBy(nearbyScores, [
+      (d) => -d.score,
+      (d) => -d.wpm,
+      (d) => d.timestamp,
+    ])
+
+    // If we're numerically ranked, calculate rank for nearby scores based on ours
+    const localIndex = nearbyScores.indexOf(mine as LeaderboardEntry)
+    if (rank) {
+      for (let i = 0; i < nearbyScores.length; i++) {
+        nearbyScores[i].rank = rank + (i - localIndex)
+      }
+    }
+
+    // Now extract the 10 we actually want to show
+    const toShow: LeaderboardEntry[] = [mine as LeaderboardEntry]
+    let i = localIndex - 1
+    let j = localIndex + 1
+    while (toShow.length < 10) {
+      const higher = nearbyScores[i]
+      const lower = nearbyScores[j]
+
+      if (!higher && !lower) break
+
+      if (higher) {
+        toShow.unshift(higher)
+        i -= 1
+      }
+
+      if (lower) {
+        toShow.push(lower)
+        j += 1
+      }
+    }
+
+    this.leaderboard = toShow
   }
 
   async showLeaderboard() {
@@ -640,7 +682,7 @@ export default class App extends Vue {
   .leaderboard
     tr.mine td
       background-color: #257d00
-    
+
 .under
   padding-top: 1rem
   border-top: 1px solid violet
