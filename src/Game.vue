@@ -79,7 +79,6 @@
         />
       </form>
       <div class="stats ms-auto">
-        Speed: <span>{{ speedFactor.toPrecision(2) }}</span>
         Score: <span>{{ score }}</span> WPM: <span>{{ wpm }}</span> Misses:
         <span class="misses">{{ wordsMissed }}</span> Missed word:
         <span>{{ missedWord }}</span>
@@ -100,9 +99,7 @@ import loanwords from "./loanwords"
 import {
   getFirestore,
   collection,
-  doc,
   getDocs,
-  setDoc,
   query,
   where,
   orderBy,
@@ -156,6 +153,7 @@ function tokenize(jp: string): string[] {
 
 type Word = {
   japanese: string
+  romaji: string
   english: string
   slot: number
   obj: PIXI.Container
@@ -193,7 +191,6 @@ export default class App extends Vue {
   wordsCompleted: number = 0
   wordsMissed: number = 0
   missedWord: string = ""
-  nextWordCountdown: number = 10000
 
   gameOver: boolean = false
   nameForLeaderboard: string = ""
@@ -325,7 +322,12 @@ export default class App extends Vue {
     // TODO
   }
 
-  addNextWord(resetCountdown = true) {
+  /** Get the total number of romaji that need to be typed for the current screen */
+  get lengthOnScreen() {
+    return this.words.map(w => w.romaji).join("").length
+  }
+
+  addNextWord() {
     const { freeSlots } = this
 
     const slot = _.sample(freeSlots)
@@ -334,7 +336,7 @@ export default class App extends Vue {
     const [jp, eng] = this.wordset.pop()!
 
     const doneText = new PIXI.Text("", this.doneStyle)
-    const remainingText = new PIXI.Text(jp!, this.wordStyle)
+    const remainingText = new PIXI.Text(jp, this.wordStyle)
 
     const obj = new PIXI.Container()
     obj.x = 0
@@ -346,7 +348,8 @@ export default class App extends Vue {
     this.pixi.stage.addChild(obj)
 
     this.words.push({
-      japanese: jp!,
+      japanese: jp,
+      romaji: wanakana.toRomaji(kanaOnly(jp)),
       english: eng,
       slot: slot,
       obj: obj,
@@ -355,13 +358,6 @@ export default class App extends Vue {
       speed: 0.2 * (5/jp.length),
       alreadySpoken: false,
     })
-
-    if (resetCountdown)
-      this.nextWordCountdown = 10000
-  }
-
-  get speedFactor() {
-    return 1 + this.wpm/10 + this.score/50
   }
 
   frame(deltaTime: number) {
@@ -388,14 +384,17 @@ export default class App extends Vue {
       return
     }
 
-    this.nextWordCountdown -= timePassed * this.speedFactor
-    if (this.nextWordCountdown <= 0) {
+    // This adaptive difficulty logic comes from https://github.com/mikeizbicki/typespeed/blob/master/game/src/typespeed.c
+    if (this.lengthOnScreen < this.score / 4 + 1 || this.words.length < 1)
       this.addNextWord()
-    }
+
+    const minspeed = 3
+    const step = 175
+		const rate = minspeed + this.score / step
 
     const missedWords: Word[] = []
     for (const word of this.words) {
-      word.obj.x += deltaTime/10 * this.speedFactor
+      word.obj.x += deltaTime * rate/30
 
       const { donePart, remainingPart } = this.matchAttemptTo(word.japanese)
       word.doneText.text = donePart
@@ -432,11 +431,6 @@ export default class App extends Vue {
   removeWord(word: Word) {
     this.pixi.stage.removeChild(word.obj)
     this.words.splice(this.words.indexOf(word), 1)
-
-    // Make sure player always has a word
-    if (this.words.length === 0) {
-      this.addNextWord(false)
-    }
   }
 
   checkAttempt() {
@@ -449,7 +443,7 @@ export default class App extends Vue {
     }
 
     for (const word of completedWords) {
-      this.score += kanaOnly(word.japanese).length
+      this.score += word.romaji.length
       this.wordsCompleted += 1
 
       const text = new PIXI.Text(word.english)
