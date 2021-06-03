@@ -1,0 +1,16 @@
+{
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "editor.tabSize": 2,
+    "editor.detectIndentation": false,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": true
+    },
+    "vetur.format.defaultFormatterOptions": {
+        "prettier": {
+            "semi": false
+        }
+    },
+    "vetur.format.options.useTabs": false,
+    "vetur.format.options.tabSize": 2
+  
+}
