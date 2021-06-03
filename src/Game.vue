@@ -79,6 +79,7 @@
         />
       </form>
       <div class="stats ms-auto">
+        Speed: <span>{{ speedFactor.toPrecision(2) }}</span>
         Score: <span>{{ score }}</span> WPM: <span>{{ wpm }}</span> Misses:
         <span class="misses">{{ wordsMissed }}</span> Missed word:
         <span>{{ missedWord }}</span>
@@ -192,6 +193,7 @@ export default class App extends Vue {
   wordsCompleted: number = 0
   wordsMissed: number = 0
   missedWord: string = ""
+  nextWordCountdown: number = 10000
 
   gameOver: boolean = false
   nameForLeaderboard: string = ""
@@ -221,8 +223,6 @@ export default class App extends Vue {
 
   width: number = 800 / window.devicePixelRatio
   height: number = 600 / window.devicePixelRatio
-
-  lastWordAddedAt: number = Date.now()
 
   pixi!: PIXI.Application
   words: Word[] = []
@@ -325,7 +325,7 @@ export default class App extends Vue {
     // TODO
   }
 
-  addNextWord() {
+  addNextWord(resetCountdown = true) {
     const { freeSlots } = this
 
     const slot = _.sample(freeSlots)
@@ -352,18 +352,23 @@ export default class App extends Vue {
       obj: obj,
       doneText: doneText,
       remainingText: remainingText,
-      speed: 0.2 + this.wpm ** 1.2 / 100,
+      speed: 0.2 * (5/jp.length),
       alreadySpoken: false,
     })
 
-    this.lastWordAddedAt = this.timestamp
+    if (resetCountdown)
+      this.nextWordCountdown = 10000
   }
 
-  get timeBetweenWords() {
-    return 5 * 1000 - this.wpm ** 1.5 - this.score * 5
+  get speedFactor() {
+    return 1 + this.wpm/10 + this.score/50
   }
 
   frame(deltaTime: number) {
+    const timestamp = Date.now()
+    const timePassed = timestamp - this.timestamp
+    this.timestamp = Date.now()
+
     if (this.wordsMissed >= 10) {
       this.gameOver = true
       this.pixi.ticker.remove(this.frame)
@@ -383,15 +388,14 @@ export default class App extends Vue {
       return
     }
 
-    const timestamp = Date.now()
-    if (timestamp - this.lastWordAddedAt >= this.timeBetweenWords) {
+    this.nextWordCountdown -= timePassed * this.speedFactor
+    if (this.nextWordCountdown <= 0) {
       this.addNextWord()
     }
-    this.timestamp = timestamp
 
     const missedWords: Word[] = []
     for (const word of this.words) {
-      word.obj.x += deltaTime * word.speed
+      word.obj.x += deltaTime/10 * this.speedFactor
 
       const { donePart, remainingPart } = this.matchAttemptTo(word.japanese)
       word.doneText.text = donePart
@@ -431,7 +435,7 @@ export default class App extends Vue {
 
     // Make sure player always has a word
     if (this.words.length === 0) {
-      this.addNextWord()
+      this.addNextWord(false)
     }
   }
 
