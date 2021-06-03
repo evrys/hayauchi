@@ -115,7 +115,16 @@ function kanaOnly(s: string): string {
   return s.replaceAll(nonKanaRegex, "")
 }
 
-function splitKana(jp: string): string[] {
+/**
+ * Break a Japanese word into the smallest possible atoms
+ * that can be independently transliterated to romaji
+ * 
+ * e.g. チャージ => ["チャー", "ジ"]
+ * 
+ * TODO kanji handling
+ */
+function tokenize(jp: string): string[] {
+  jp = kanaOnly(jp)
   const kana = []
 
   const beforeModifiers = ["ッ", "っ"]
@@ -141,16 +150,6 @@ function splitKana(jp: string): string[] {
   return kana
 }
 
-function tokenize(jp: string): string[] {
-  jp = kanaOnly(jp)
-
-  if (jp.includes("ー")) {
-    jp = wanakana.toKatakana(jp)
-  }
-
-  return splitKana(wanakana.toHiragana(wanakana.toRomaji(jp)))
-}
-
 type Word = {
   japanese: string
   romaji: string
@@ -159,7 +158,7 @@ type Word = {
   obj: PIXI.Container
   doneText: PIXI.Text
   remainingText: PIXI.Text
-  hintText: PIXI.Text
+  hintObj: PIXI.Container
   speed: number
   alreadySpoken: boolean
 }
@@ -211,13 +210,23 @@ export default class App extends Vue {
 
   wordStyle = new PIXI.TextStyle({
     fill: "#ffffff",
+    fontSize: 26
   })
   doneStyle = new PIXI.TextStyle({
     fill: "lightgreen",
+    fontSize: 26
   })
   warningStyle = new PIXI.TextStyle({
     fill: "#f1a52e",
+    fontSize: 26
   })
+  hintStyle = new PIXI.TextStyle({
+    fill: "#ffffff",
+    fontSize: 16
+  })
+
+  hintHeight: number = PIXI.TextMetrics.measureText("waffles", this.hintStyle).height
+
 
   width: number = 800 / window.devicePixelRatio
   height: number = 600 / window.devicePixelRatio
@@ -230,7 +239,7 @@ export default class App extends Vue {
 
   /** How many words can potentially be in play at once */
   get totalSlots() {
-    return 15
+    return 10
   }
 
   get rowHeight() {
@@ -283,9 +292,11 @@ export default class App extends Vue {
     this.pixi.stage.addChild(this.translations)
 
     // Calculate how much we need to scale words by to have them fill the row
+    // Leaving room for the romaji hint text above
     const height = PIXI.TextMetrics.measureText("waffles", this.wordStyle)
       .height
-    this.wordScale = this.rowHeight / height
+
+    this.wordScale = this.rowHeight / (height+this.hintHeight)
 
     this.frame = this.frame.bind(this)
     this.pixi.ticker.add(this.frame)
@@ -295,6 +306,7 @@ export default class App extends Vue {
     this.keydown = this.keydown.bind(this)
     window.addEventListener("keydown", this.keydown)
 
+    // while (this.freeSlots.length > 0)
     this.addNextWord()
   }
 
@@ -325,18 +337,14 @@ export default class App extends Vue {
 
   activateHints() {
     for (const word of this.words) {
-        word.hintText.alpha = 1.0
-        word.remainingText.alpha = 0.0
-        word.doneText.alpha = 0.0
+        word.hintObj.alpha = 1.0
       }
     setTimeout(this.deactivateHints, 2000)
   }
 
   deactivateHints(){
     for (const word of this.words) {
-        word.hintText.alpha = 0.0
-        word.remainingText.alpha = 1.0
-        word.doneText.alpha = 1.0
+        word.hintObj.alpha = 0.0
       }
   }
 
@@ -357,30 +365,50 @@ export default class App extends Vue {
 
     const [jp, eng] = this.wordset.pop()!
 
+
+    // This will contain the word and hint text components, so they
+    // can be scaled and moved along the screen as a group
+    const wordObj = new PIXI.Container()
+    wordObj.x = 0
+    wordObj.y = slot * this.rowHeight
+    wordObj.scale.x = this.wordScale
+    wordObj.scale.y = this.wordScale
+    this.pixi.stage.addChild(wordObj)
+
+    // Each word is composed of two pixi parts. doneText
+    // will become the green highlighted part that matches the romaji input
     const doneText = new PIXI.Text("", this.doneStyle)
     const remainingText = new PIXI.Text(jp, this.wordStyle)
-    const hintText = new PIXI.Text(wanakana.toRomaji(jp), this.wordStyle)
+    doneText.position.y = this.hintHeight
+    remainingText.position.y = this.hintHeight
+    wordObj.addChild(doneText)
+    wordObj.addChild(remainingText)
 
-    const obj = new PIXI.Container()
-    obj.x = 0
-    obj.y = slot * this.rowHeight
-    obj.scale.x = this.wordScale
-    obj.scale.y = this.wordScale
-    obj.addChild(doneText)
-    obj.addChild(remainingText)
-    obj.addChild(hintText)
-    hintText.alpha = 0.0
-    this.pixi.stage.addChild(obj)
+    // The romaji hint is broken into a bunch of pixi parts so they
+    // can be positioned to match the corresponding tokens
+    const hintObj = new PIXI.Container()
+    hintObj.alpha = 0.0
+    let hintOffset = 0
+    for (const token of tokenize(jp)) {
+      const tokenWidth = PIXI.TextMetrics.measureText(token, this.wordStyle).width
+      const hintText = new PIXI.Text(wanakana.toRomaji(token), this.hintStyle)
+      hintText.x = hintOffset + tokenWidth/2
+      hintText.anchor.x = 0.5
+      hintObj.addChild(hintText)
+      hintOffset += tokenWidth
+    }
+    wordObj.addChild(hintObj)
+
 
     this.words.push({
       japanese: jp,
       romaji: wanakana.toRomaji(kanaOnly(jp)),
       english: eng,
       slot: slot,
-      obj: obj,
+      obj: wordObj,
       doneText: doneText,
       remainingText: remainingText,
-      hintText: hintText,
+      hintObj: hintObj,
       speed: 0.2 * (5 / jp.length),
       alreadySpoken: false,
     })
@@ -485,36 +513,20 @@ export default class App extends Vue {
     this.attempt = ""
   }
 
-  get attemptTokens() {
-    return tokenize(wanakana.toHiragana(this.attempt))
-  }
-
   matchAttemptTo(jp: string) {
-    const { attemptTokens } = this
+    const tokens: string[] = tokenize(jp).reverse()
+    const doneTokens: string[] = []
 
-    let donePart = ""
-    let remainingPart = jp
-    let prevPartTokens: string[] = []
-    for (let i = 0; i < jp.length; i++) {
-      const part = jp.slice(0, i + 1)
-      const partTokens = tokenize(part)
-      // console.log(i, kanaOnly(part), partHiragana, splitKana(attemptHiragana.slice(0, partHiragana.length))
-
-      if (
-        !_.isEqual(prevPartTokens, partTokens) &&
-        _.isEqual(partTokens, attemptTokens.slice(0, partTokens.length))
-      ) {
-        donePart = jp.slice(0, i + 1)
-        remainingPart = jp.slice(i + 1)
-      }
-
-      prevPartTokens = partTokens
+    while (tokens.length > 0) {
+      const expectedAttempt = doneTokens.map(t => wanakana.toRomaji(t)).join("") + wanakana.toRomaji(tokens[tokens.length-1])
+      if (this.attempt.startsWith(expectedAttempt))
+        doneTokens.push(tokens.pop()!)
+      else
+        break
     }
 
-    if (wanakana.toRomaji(kanaOnly(remainingPart)).length === 0) {
-      donePart = jp
-      remainingPart = ""
-    }
+    const donePart = doneTokens.join("")
+    const remainingPart = tokens.reverse().join("")
 
     return { donePart, remainingPart }
   }
