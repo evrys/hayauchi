@@ -1,32 +1,105 @@
 <template>
   <main>
-    <canvas width="800" height="600" />
-    <div class="under d-flex">
+    <div class="canvasContainer">
+      <canvas width="800" height="600" />
+      <div v-if="gameOver" class="postgame">
+        <div v-if="!showingLeaderboard">
+          <h3>Game complete!</h3>
+          <p>You achieved:</p>
+
+          <table>
+            <tr>
+              <td>Score:</td>
+              <td>{{score}}</td>
+            </tr>
+            <tr>
+              <td>WPM:</td>
+              <td>{{wpm}}</td>
+            </tr>
+          </table>
+
+
+          <form @submit.prevent="showLeaderboard">
+            <input
+              type="text"
+              class="nameInput"
+              placeholder="Name for leaderboard"
+              v-model="nameForLeaderboard"
+              autofocus
+            />
+            <div class="d-flex">
+              <button type="submit" class="btn btn-primary">Record Score</button>
+              <button class="btn btn-sm ms-auto" @click.prevent="$emit('exit')">Exit to Menu</button>
+            </div>
+          </form>
+        </div>
+        <div class="leaderboard" v-else>
+          <h3>High Scores</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Name</th>
+                <th>Score</th>
+                <th>WPM</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="entry in leaderboard" :key="entry.id" :class="{ mine: entry.mine }">
+                <td>{{1+entry.rank}}.</td>
+                <td v-if="entry.mine">{{nameForLeaderboard}}</td>
+                <td v-else>{{ entry.name }}</td>
+                <td>{{ entry.score }}</td>
+                <td>{{ entry.wpm }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <button class="btn btn-sm ms-auto" @click.prevent="$emit('exit')">Exit to Menu</button>
+        </div>
+      </div>
+    </div>
+    <div class="under d-flex" v-if="!gameOver">
       <form @submit.prevent="checkAttempt">
         <span>&gt; </span>
-        <input type="text" v-model="attempt" autofocus />
+        <input
+          type="text"
+          class="attemptInput"
+          ref="attemptInput"
+          v-model="attempt"
+          autofocus
+        />
       </form>
       <div class="stats ms-auto">
-        Score: <span>{{score}}</span>
-        WPM: <span>{{wpm}}</span>
-        Misses: <span class="misses">{{wordsMissed}}</span>
-		Missed word: <span>{{missedWord}}</span>
+        Score: <span>{{ score }}</span> WPM: <span>{{ wpm }}</span> Misses:
+        <span class="misses">{{ wordsMissed }}</span> Missed word:
+        <span>{{ missedWord }}</span>
       </div>
     </div>
   </main>
 </template>
 
 <script lang="ts">
-import { Component, Prop, Vue, Watch } from "vue-property-decorator"
+import { Component, Prop, Ref, Vue, Watch } from "vue-property-decorator"
 import _ from "lodash"
 import * as wanakana from "wanakana"
 import type { GameOptions } from "./types"
 import * as PIXI from "pixi.js"
-declare const window: any
-window.wanakana = wanakana
 // @ts-ignore
-import pokenames from '../data/pokenames.json'
-import loanwords from './loanwords'
+import pokenames from "../data/pokenames.json"
+import loanwords from "./loanwords"
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore"
 
 const nonKanaRegex = /[^あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわゐゑをんがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽぁぃぅぇぉアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヰヱヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポァィゥェォーャョュェッっゃょゅぇ]/g
 function kanaOnly(s: string): string {
@@ -82,11 +155,26 @@ type Word = {
   alreadySpoken: boolean
 }
 
+type LeaderboardEntry = {
+  id: string
+  name: string
+  rank: number
+  score: number
+  wpm: number
+} | {
+  id: 'mine'
+  mine: true
+  rank: number
+  score: number
+  wpm: number
+}
+
 @Component({
   components: {},
 })
 export default class App extends Vue {
   @Prop({ type: Object, required: true }) options!: GameOptions
+  @Ref() readonly attemptInput!: HTMLInputElement
 
   attempt: string = ""
   score: number = 0
@@ -94,11 +182,18 @@ export default class App extends Vue {
   wordsMissed: number = 0
   missedWord: string = ""
 
+  gameOver: boolean = false
+  nameForLeaderboard: string = ""
+  showingLeaderboard: boolean = false
+
+  /** Up to 10 scores, including ours, centered on us */
+  leaderboard: LeaderboardEntry[] = []
+
   startTime: number = Date.now()
   timestamp: number = Date.now()
 
   get timeTaken() {
-    return this.timestamp = this.startTime
+    return this.timestamp - this.startTime
   }
 
   wordScale: number = 1
@@ -110,13 +205,11 @@ export default class App extends Vue {
     fill: "lightgreen",
   })
   warningStyle = new PIXI.TextStyle({
-    fill: '#f1a52e'
+    fill: "#f1a52e",
   })
-
 
   width: number = 800 / window.devicePixelRatio
   height: number = 600 / window.devicePixelRatio
-
 
   lastWordAddedAt: number = Date.now()
 
@@ -145,16 +238,11 @@ export default class App extends Vue {
     }
     return Array.from(freeSlots)
   }
-
-  get gameOver() {
-    return this.wordsMissed >= 10
-  }
-
   // canUseWord(jp: string) {
   //   const hiraganaRegex = /[あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわゐゑをんがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽぁぃぅぇぉっゃょゅぇ]/
   //   if (!this.options.hiragana && jp.match(hiraganaRegex))
   //     return false
-    
+
   //   const katakanaRegex = /[アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヰヱヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポァィゥェォーャョュェッ]/g
   //   if (!this.options.katakana && jp.match(katakanaRegex))
   //     return false
@@ -163,16 +251,14 @@ export default class App extends Vue {
   // }
 
   created() {
-    window.game = this
+    (window as any).game = this
 
-    if (this.options.pokemon)
-      this.wordset.push(...pokenames)
+    if (this.options.pokemon) this.wordset.push(...pokenames)
 
-    if (this.options.loanwords)
-      this.wordset.push(...loanwords)
+    if (this.options.loanwords) this.wordset.push(...loanwords)
 
-    // this.wordset = _.shuffle(_.uniqBy(this.wordset, w => w[0]))
-    this.wordset = _.reverse(_.uniqBy(this.wordset, w => w[0]))
+    this.wordset = _.shuffle(_.uniqBy(this.wordset, w => w[0]))
+    // this.wordset = _.reverse(_.uniqBy(this.wordset, (w) => w[0]))
   }
 
   mounted() {
@@ -183,34 +269,56 @@ export default class App extends Vue {
       antialias: true,
       backgroundAlpha: 0,
       view: canvas,
-      resolution: window.devicePixelRatio
+      resolution: window.devicePixelRatio,
     })
     this.pixi.stage.addChild(this.translations)
 
     // Calculate how much we need to scale words by to have them fill the row
-    const height = PIXI.TextMetrics.measureText(
-      "foo",
-      this.wordStyle
-    ).height
+    const height = PIXI.TextMetrics.measureText("waffles", this.wordStyle)
+      .height
     this.wordScale = this.rowHeight / height
-
 
     this.frame = this.frame.bind(this)
     this.pixi.ticker.add(this.frame)
-    document.getElementsByTagName("input")[0].focus()
+    this.attemptInput.focus()
     this.onResize()
-    this.addRandomWord()
+
+    this.keydown = this.keydown.bind(this)
+    window.addEventListener("keydown", this.keydown)
+
+    this.addNextWord()
+  }
+
+  destroyed() {
+    window.removeEventListener("keydown", this.keydown)
+  }
+
+
+  keydown(ev: KeyboardEvent) {
+    if (ev.key === "Escape") {
+      if (!this.gameOver) {
+        // End game
+        this.wordsMissed = 10
+      } else {
+        this.$emit("exit")
+      }
+    }
+
+    if (ev.key === "Enter") {
+      if (this.showingLeaderboard) {
+        this.$emit("exit")
+      }
+    }
   }
 
   onResize() {
     // TODO
   }
 
-  addRandomWord() {
+  addNextWord() {
     const { freeSlots } = this
 
     const slot = _.sample(freeSlots)
-    console.log(slot)
     if (slot == null) return
 
     const [jp, eng] = this.wordset.pop()!
@@ -234,24 +342,33 @@ export default class App extends Vue {
       obj: obj,
       doneText: doneText,
       remainingText: remainingText,
-      speed: 0.2 + (this.wpm**1.2)/100,
+      speed: 0.2 + this.wpm ** 1.2 / 100,
       alreadySpoken: false,
     })
+
+    this.lastWordAddedAt = this.timestamp
   }
 
   get timeBetweenWords() {
-    return 5 * 1000 - this.wpm**1.5 - this.score*5
+    return 5 * 1000 - this.wpm ** 1.5 - this.score * 5
   }
 
   frame(deltaTime: number) {
-    if (this.gameOver) {
-      // TODO
+    if (this.wordsMissed >= 10) {
+      this.gameOver = true
+      this.pixi.ticker.remove(this.frame)
+      this.fetchLeaderboard()
+      this.$nextTick(() =>
+        (document.getElementsByClassName(
+          "nameInput"
+        )[0]! as HTMLInputElement)?.focus()
+      )
+      return
     }
 
     const timestamp = Date.now()
     if (timestamp - this.lastWordAddedAt >= this.timeBetweenWords) {
-      this.addRandomWord()
-      this.lastWordAddedAt = timestamp
+      this.addNextWord()
     }
     this.timestamp = timestamp
 
@@ -269,12 +386,12 @@ export default class App extends Vue {
         word.alreadySpoken = true
       }
 
-      if (word.obj.x > this.width/2) {
+      if (word.obj.x > this.width / 2) {
         word.remainingText.style = this.warningStyle
       }
 
       if (word.obj.x > this.width) {
-		this.missedWord = wanakana.toRomaji(word.japanese)
+        this.missedWord = wanakana.toRomaji(word.japanese)
         missedWords.push(word)
       }
     }
@@ -282,8 +399,7 @@ export default class App extends Vue {
     for (const text of this.translations.children) {
       text.y -= deltaTime * 0.5
       text.alpha -= deltaTime * 0.02
-      if (text.alpha <= 0)
-        this.translations.removeChild(text)
+      if (text.alpha <= 0) this.translations.removeChild(text)
     }
 
     for (const word of missedWords) {
@@ -298,7 +414,7 @@ export default class App extends Vue {
 
     // Make sure player always has a word
     if (this.words.length === 0) {
-      this.addRandomWord()
+      this.addNextWord()
     }
   }
 
@@ -365,16 +481,14 @@ export default class App extends Vue {
 
   get voice(): SpeechSynthesisVoice | null {
     const { options } = this
-    if (options.voice === null)
-      return null
+    if (options.voice === null) return null
 
     const jpvoices = speechSynthesis
       .getVoices()
       .filter((v) => v.lang === "ja-JP")
 
-    const voice = jpvoices.find(v => v.name === options.voice)
-    if (voice)
-      return voice
+    const voice = jpvoices.find((v) => v.name === options.voice)
+    if (voice) return voice
 
     const voicePrefs = _.sortBy(jpvoices, (v) =>
       v.name.startsWith("Google") ? -1 : 0
@@ -383,7 +497,11 @@ export default class App extends Vue {
   }
 
   get wpm() {
-    return Math.round(this.wordsCompleted / (this.timeTaken/(1000*60)))
+    const wpm = Math.round(this.wordsCompleted / (this.timeTaken / (1000 * 60)))
+    if (isNaN(wpm)) {
+      return 0
+    }
+    return wpm
   }
 
   speak(s: string) {
@@ -396,18 +514,139 @@ export default class App extends Vue {
     speechSynthesis.speak(utter)
   }
 
+  async fetchLeaderboard() {
+    const db = getFirestore()
+    const leaderboardRef = collection(db, "leaderboard")
+
+    // TODO this isn't a scalable way of calculating rank
+    const qrank = query(
+      leaderboardRef,
+      where("score", ">=", this.score),
+      orderBy("score", "desc"),
+      orderBy("wpm", "desc"),
+      orderBy("timestamp", "asc")
+    )
+    const q1 = query(
+      leaderboardRef,
+      where("score", ">", this.score),
+      orderBy("score", "desc"),
+      orderBy("wpm", "desc"),
+      orderBy("timestamp", "asc"),
+      limit(10)
+    )
+    const q2 = query(
+      leaderboardRef,
+      where("score", "<=", this.score),
+      orderBy("score", "desc"),
+      orderBy("wpm", "desc"),
+      orderBy("timestamp", "asc"),
+      limit(10)
+    )
+
+    const [rankr, q1r, q2r] = await Promise.all([
+      getDocs(qrank),
+      getDocs(q1),
+      getDocs(q2),
+    ])
+    const rank = rankr.size
+
+    const higherScores = q1r.docs.map((d) => d.data())
+    const lowerScores = q2r.docs.map((d) => d.data())
+
+    const leaderboard = [{
+      id: 'mine',
+      rank: rank,
+      score: this.score,
+      wpm: this.wpm,
+      mine: true
+    }] as LeaderboardEntry[]
+
+    while (leaderboard.length < 10) {
+      const higher = higherScores.pop()
+      const lower = lowerScores.shift()
+
+
+      if (!higher && !lower)
+        break
+      
+      if (higher) {
+        higher.rank = leaderboard[0].rank - 1
+        leaderboard.unshift(higher as LeaderboardEntry)
+      } 
+      
+      if (lower) {
+        if (lower.score === this.score && lower.wpm >= this.wpm) {
+          // It's actually higher rank
+          lower.rank = leaderboard[0].rank - 1
+          leaderboard.unshift(lower as LeaderboardEntry)
+        } else {
+          lower.rank = leaderboard[leaderboard.length-1].rank + 1
+          leaderboard.push(lower as LeaderboardEntry)
+        }
+      }
+    }
+
+    this.leaderboard = leaderboard
+  }
+
+  async showLeaderboard() {
+    const name = this.nameForLeaderboard.trim()
+    if (!name) return
+
+    this.showingLeaderboard = true
+
+    // Record our score. We don't need to wait for this to finish before showing it to player
+    const db = getFirestore()
+    const leaderboardRef = collection(db, "leaderboard")
+    await addDoc(leaderboardRef, {
+      name: name,
+      score: this.score,
+      wpm: this.wpm,
+      timestamp: serverTimestamp(),
+    })
+  }
 }
 </script>
 
 <style lang="sass">
-canvas
-  padding-bottom: 1rem
-  border-bottom: 1px solid violet
+.canvasContainer
+  position: relative
 
+.postgame
+  background-color: rgba(34, 34, 34, 0.9)
+  position: absolute
+  left: 0
+  top: 0
+  width: 100%
+  height: 100%
+  display: flex
+  align-items: center
+  justify-content: center
+
+  .nameInput
+    padding: 1rem
+    background: none
+    border: 1px solid #ccc
+    display: block
+    min-width: 300px
+    margin-top: 1rem
+    margin-bottom: 1rem
+    color: white
+    outline: none
+
+  .btn-sm
+    color: #999
+
+  .leaderboard
+    tr.mine td
+      background-color: #257d00
+    
 .under
+  padding-top: 1rem
+  border-top: 1px solid violet
   color: violet
 
-input
+.attemptInput
   border: none
   background: none
   color: white
@@ -421,7 +660,7 @@ input
 
 .stats
   opacity: 0.9
-  color: #00bc8c	
+  color: #00bc8c
 
   span
     display: inline-block

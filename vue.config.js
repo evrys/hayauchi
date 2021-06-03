@@ -3,6 +3,8 @@
  */
 module.exports = {
   chainWebpack: config => {
+    config.devtool("cheap-module-eval-sourcemap")
+
     config.module
       .rule('tsv')
       .test(/\.tsv$/)

@@ -20,7 +20,7 @@
       </section> -->
 
       <section class="wordsetSetting">
-        <h6>Wordsets</h6>
+        <h6>Katakana</h6>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" value="" id="loanwords" v-model="options.loanwords">
           <label class="form-check-label" for="loanwords">
@@ -55,19 +55,36 @@
     <p>The game ends after 10 missed words.<br/> Type as many as you can to get the highest score!</p>
     <button class="btn btn-primary" @click.prevent="startGame" :disabled="!canStart">Start</button>
   </main>
-  <Game v-else :options="options" />
+  <Game v-else :options="options" @exit="gameStarted = false"/>
 </template>
 
 <script lang="ts">
+import { initializeApp } from 'firebase/app'
+import { getAuth, signInAnonymously } from "firebase/auth"
+
+// Initialize Firebase
+initializeApp({
+  apiKey: "AIzaSyD1-kAgLtwuKjtU7mz-5hWdyHMrH4v2Ao8",
+  authDomain: "kanaspeed-ae459.firebaseapp.com",
+  projectId: "kanaspeed-ae459",
+  storageBucket: "kanaspeed-ae459.appspot.com",
+  messagingSenderId: "898305225736",
+  appId: "1:898305225736:web:c99ce6922e4c5fde214dbd",
+  measurementId: "G-B644ZEG6EQ"
+})
+
 import { Component, Vue } from "vue-property-decorator"
 import _ from "lodash"
 import * as wanakana from "wanakana"
 import Game from "./Game.vue"
+import type { GameOptions } from "./types"
+
+// This auth will be used for the leaderboard later, let's sign in now
+const auth = getAuth()
+signInAnonymously(auth)
+
 declare const window: any
-window.wanakana = wanakana
-// @ts-ignore
-import _sentences from "../data/lines.tsv"
-import { GameOptions } from "./types"
+window.wanakana = wanakana // For debugging
 
 @Component({
   components: {
@@ -80,6 +97,9 @@ export default class App extends Vue {
   options: GameOptions = this.defaultGameOptions
 
   created() {
+    this.keydown = this.keydown.bind(this)
+    window.addEventListener("keydown", this.keydown)
+
     // Sometimes browser takes a while to populate options
     speechSynthesis.addEventListener("voiceschanged", () => {
       this.browserVoices = speechSynthesis.getVoices()
@@ -88,8 +108,18 @@ export default class App extends Vue {
     this.browserVoices = speechSynthesis.getVoices()
   }
 
+  destroyed() {
+    window.removeEventListener(this.keydown)
+  }
+
   get voiceOptions() {
     return _.sortBy(this.browserVoices.filter(v => v.lang === "ja-JP"), v => v.name.startsWith("Google") ? -1 : 0)
+  }
+
+  keydown(ev: KeyboardEvent) {
+    if (ev.key === "Enter" && !this.gameStarted) {
+      this.startGame()
+    }
   }
 
   mounted() {
@@ -101,6 +131,7 @@ export default class App extends Vue {
   }
 
   startGame() {
+    if (!this.canStart) return
     this.gameStarted = true
   }
 
