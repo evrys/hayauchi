@@ -160,6 +160,7 @@ type Word = {
   obj: PIXI.Container
   doneText: PIXI.Text
   remainingText: PIXI.Text
+  hintText: PIXI.Text
   speed: number
   alreadySpoken: boolean
 }
@@ -314,11 +315,32 @@ export default class App extends Vue {
       }
     }
 
+    if (ev.key === "Shift") {
+      this.activateHints()
+    }
+
     if (ev.key === "Enter") {
       if (this.showingLeaderboard) {
         this.$emit("exit")
       }
     }
+  }
+
+  activateHints() {
+    for (const word of this.words) {
+        word.hintText.alpha = 1.0
+        word.remainingText.alpha = 0.0
+        word.doneText.alpha = 0.0
+      }
+    setTimeout(this.deactivateHints, 2000)
+  }
+
+  deactivateHints(){
+    for (const word of this.words) {
+        word.hintText.alpha = 0.0
+        word.remainingText.alpha = 1.0
+        word.doneText.alpha = 1.0
+      }
   }
 
   onResize() {
@@ -335,6 +357,7 @@ export default class App extends Vue {
 
     const doneText = new PIXI.Text("", this.doneStyle)
     const remainingText = new PIXI.Text(jp!, this.wordStyle)
+    const hintText = new PIXI.Text(wanakana.toRomaji(jp!), this.wordStyle)
 
     const obj = new PIXI.Container()
     obj.x = 0
@@ -343,6 +366,8 @@ export default class App extends Vue {
     obj.scale.y = this.wordScale
     obj.addChild(doneText)
     obj.addChild(remainingText)
+    obj.addChild(hintText)
+    hintText.alpha = 0.0
     this.pixi.stage.addChild(obj)
 
     this.words.push({
@@ -352,6 +377,7 @@ export default class App extends Vue {
       obj: obj,
       doneText: doneText,
       remainingText: remainingText,
+      hintText: hintText,
       speed: 0.2 + this.wpm ** 1.2 / 100,
       alreadySpoken: false,
     })
