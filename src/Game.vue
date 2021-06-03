@@ -408,7 +408,7 @@ export default class App extends Vue {
       }
 
       if (word.obj.x > this.width) {
-        this.missedWord = wanakana.toRomaji(word.japanese)
+        this.missedWord = word.japanese + " - " + wanakana.toRomaji(word.japanese)
         missedWords.push(word)
       }
     }
