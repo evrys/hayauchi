@@ -324,7 +324,7 @@ export default class App extends Vue {
 
   /** Get the total number of romaji that need to be typed for the current screen */
   get lengthOnScreen() {
-    return this.words.map(w => w.romaji).join("").length
+    return this.words.map((w) => w.romaji).join("").length
   }
 
   addNextWord() {
@@ -355,14 +355,12 @@ export default class App extends Vue {
       obj: obj,
       doneText: doneText,
       remainingText: remainingText,
-      speed: 0.2 * (5/jp.length),
+      speed: 0.2 * (5 / jp.length),
       alreadySpoken: false,
     })
   }
 
   frame(deltaTime: number) {
-    const timestamp = Date.now()
-    const timePassed = timestamp - this.timestamp
     this.timestamp = Date.now()
 
     if (this.wordsMissed >= 10) {
@@ -390,11 +388,11 @@ export default class App extends Vue {
 
     const minspeed = 3
     const step = 175
-		const rate = minspeed + this.score / step
+    const rate = minspeed + this.score / step
 
     const missedWords: Word[] = []
     for (const word of this.words) {
-      word.obj.x += deltaTime * rate/30
+      word.obj.x += (deltaTime * rate) / 30
 
       const { donePart, remainingPart } = this.matchAttemptTo(word.japanese)
       word.doneText.text = donePart
@@ -411,7 +409,8 @@ export default class App extends Vue {
       }
 
       if (word.obj.x > this.width) {
-        this.missedWord = word.japanese + " - " + wanakana.toRomaji(word.japanese)
+        this.missedWord =
+          word.japanese + " - " + wanakana.toRomaji(word.japanese)
         missedWords.push(word)
       }
     }
@@ -568,11 +567,14 @@ export default class App extends Vue {
     const lowerScores = q2r.docs.map((d) => d.data())
 
     // Check if we're in the top 50; if so, we get ranked numerically
-    let rank: number|null = null
+    let rank: number | null = null
     for (let i = 0; i < top50Scores.length; i++) {
       const entry = top50Scores[i]
-      if (this.score > entry.score || (this.score === entry.score && this.wpm > entry.wpm)) {
-        rank = 1+i
+      if (
+        this.score > entry.score ||
+        (this.score === entry.score && this.wpm > entry.wpm)
+      ) {
+        rank = 1 + i
         break
       }
     }
