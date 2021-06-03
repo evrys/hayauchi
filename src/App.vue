@@ -60,7 +60,7 @@
 
 <script lang="ts">
 import { initializeApp } from 'firebase/app'
-import { getAuth, signInAnonymously } from "firebase/auth"
+import { browserLocalPersistence, getAuth, setPersistence, signInAnonymously } from "firebase/auth"
 
 // Initialize Firebase
 initializeApp({
@@ -79,10 +79,6 @@ import * as wanakana from "wanakana"
 import Game from "./Game.vue"
 import type { GameOptions } from "./types"
 
-// This auth will be used for the leaderboard later, let's sign in now
-const auth = getAuth()
-signInAnonymously(auth)
-
 declare const window: any
 window.wanakana = wanakana // For debugging
 
@@ -96,7 +92,7 @@ export default class App extends Vue {
   browserVoices: SpeechSynthesisVoice[] = []
   options: GameOptions = this.defaultGameOptions
 
-  created() {
+  async created() {
     this.keydown = this.keydown.bind(this)
     window.addEventListener("keydown", this.keydown)
 
@@ -106,6 +102,11 @@ export default class App extends Vue {
       this.options.voice = this.defaultVoiceName
     })
     this.browserVoices = speechSynthesis.getVoices()
+
+    // This auth will be used for the leaderboard later, let's sign in now
+    const auth = getAuth()
+    await setPersistence(auth, browserLocalPersistence)
+    signInAnonymously(auth)
   }
 
   destroyed() {
