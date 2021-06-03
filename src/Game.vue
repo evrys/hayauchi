@@ -187,10 +187,11 @@ export default class App extends Vue {
   @Ref() readonly attemptInput!: HTMLInputElement
 
   attempt: string = ""
-  score: number = 0
+  floatScore: number = 0
   wordsCompleted: number = 0
   wordsMissed: number = 0
   missedWord: string = ""
+  hintsActive: boolean = false
 
   gameOver: boolean = false
   nameForLeaderboard: string = ""
@@ -204,6 +205,10 @@ export default class App extends Vue {
 
   get timeTaken() {
     return this.timestamp - this.startTime
+  }
+
+  get score() {
+    return Math.round(this.floatScore)
   }
 
   wordScale: number = 1
@@ -305,6 +310,7 @@ export default class App extends Vue {
 
     this.keydown = this.keydown.bind(this)
     window.addEventListener("keydown", this.keydown)
+    window.addEventListener("keyup", this.keyup)
 
     // while (this.freeSlots.length > 0)
     this.addNextWord()
@@ -312,6 +318,7 @@ export default class App extends Vue {
 
   destroyed() {
     window.removeEventListener("keydown", this.keydown)
+    window.removeEventListener("keyup", this.keyup)
   }
 
   keydown(ev: KeyboardEvent) {
@@ -335,17 +342,18 @@ export default class App extends Vue {
     }
   }
 
+  keyup(ev: KeyboardEvent) {
+    if (ev.key === "Shift") {
+      this.deactivateHints()
+    }
+  }
+
   activateHints() {
-    for (const word of this.words) {
-        word.hintObj.alpha = 1.0
-      }
-    setTimeout(this.deactivateHints, 2000)
+    this.hintsActive = true
   }
 
   deactivateHints(){
-    for (const word of this.words) {
-        word.hintObj.alpha = 0.0
-      }
+    this.hintsActive = false
   }
 
   onResize() {
@@ -444,9 +452,22 @@ export default class App extends Vue {
     const step = 175
     const rate = minspeed + this.score / step
 
+
+    // Drain score while using hints
+    if (this.hintsActive) {
+      this.floatScore -= deltaTime/60
+    }
+
     const missedWords: Word[] = []
     for (const word of this.words) {
       word.obj.x += (deltaTime * rate) / 30
+
+      if (word.obj.x > this.width) {
+        this.missedWord =
+          word.japanese + " - " + wanakana.toRomaji(word.japanese)
+        missedWords.push(word)
+        continue
+      }
 
       const { donePart, remainingPart } = this.matchAttemptTo(word.japanese)
       word.doneText.text = donePart
@@ -462,10 +483,10 @@ export default class App extends Vue {
         word.remainingText.style = this.warningStyle
       }
 
-      if (word.obj.x > this.width) {
-        this.missedWord =
-          word.japanese + " - " + wanakana.toRomaji(word.japanese)
-        missedWords.push(word)
+      if (this.hintsActive) {
+        word.hintObj.alpha = 1.0
+      } else {
+        word.hintObj.alpha = 0.0
       }
     }
 
@@ -496,7 +517,7 @@ export default class App extends Vue {
     }
 
     for (const word of completedWords) {
-      this.score += word.romaji.length
+      this.floatScore += word.romaji.length
       this.wordsCompleted += 1
 
       const text = new PIXI.Text(word.english)
