@@ -99,9 +99,7 @@ import loanwords from "./loanwords"
 import {
   getFirestore,
   collection,
-  doc,
   getDocs,
-  setDoc,
   query,
   where,
   orderBy,
@@ -155,6 +153,7 @@ function tokenize(jp: string): string[] {
 
 type Word = {
   japanese: string
+  romaji: string
   english: string
   slot: number
   obj: PIXI.Container
@@ -222,8 +221,6 @@ export default class App extends Vue {
 
   width: number = 800 / window.devicePixelRatio
   height: number = 600 / window.devicePixelRatio
-
-  lastWordAddedAt: number = Date.now()
 
   pixi!: PIXI.Application
   words: Word[] = []
@@ -347,6 +344,11 @@ export default class App extends Vue {
     // TODO
   }
 
+  /** Get the total number of romaji that need to be typed for the current screen */
+  get lengthOnScreen() {
+    return this.words.map((w) => w.romaji).join("").length
+  }
+
   addNextWord() {
     const { freeSlots } = this
 
@@ -356,8 +358,8 @@ export default class App extends Vue {
     const [jp, eng] = this.wordset.pop()!
 
     const doneText = new PIXI.Text("", this.doneStyle)
-    const remainingText = new PIXI.Text(jp!, this.wordStyle)
-    const hintText = new PIXI.Text(wanakana.toRomaji(jp!), this.wordStyle)
+    const remainingText = new PIXI.Text(jp, this.wordStyle)
+    const hintText = new PIXI.Text(wanakana.toRomaji(jp), this.wordStyle)
 
     const obj = new PIXI.Container()
     obj.x = 0
@@ -371,25 +373,22 @@ export default class App extends Vue {
     this.pixi.stage.addChild(obj)
 
     this.words.push({
-      japanese: jp!,
+      japanese: jp,
+      romaji: wanakana.toRomaji(kanaOnly(jp)),
       english: eng,
       slot: slot,
       obj: obj,
       doneText: doneText,
       remainingText: remainingText,
       hintText: hintText,
-      speed: 0.2 + this.wpm ** 1.2 / 100,
+      speed: 0.2 * (5 / jp.length),
       alreadySpoken: false,
     })
-
-    this.lastWordAddedAt = this.timestamp
-  }
-
-  get timeBetweenWords() {
-    return 5 * 1000 - this.wpm ** 1.5 - this.score * 5
   }
 
   frame(deltaTime: number) {
+    this.timestamp = Date.now()
+
     if (this.wordsMissed >= 10) {
       this.gameOver = true
       this.pixi.ticker.remove(this.frame)
@@ -409,15 +408,17 @@ export default class App extends Vue {
       return
     }
 
-    const timestamp = Date.now()
-    if (timestamp - this.lastWordAddedAt >= this.timeBetweenWords) {
+    // This adaptive difficulty logic comes from https://github.com/mikeizbicki/typespeed/blob/master/game/src/typespeed.c
+    if (this.lengthOnScreen < this.score / 4 + 1 || this.words.length < 1)
       this.addNextWord()
-    }
-    this.timestamp = timestamp
+
+    const minspeed = 3
+    const step = 175
+    const rate = minspeed + this.score / step
 
     const missedWords: Word[] = []
     for (const word of this.words) {
-      word.obj.x += deltaTime * word.speed
+      word.obj.x += (deltaTime * rate) / 30
 
       const { donePart, remainingPart } = this.matchAttemptTo(word.japanese)
       word.doneText.text = donePart
@@ -434,7 +435,8 @@ export default class App extends Vue {
       }
 
       if (word.obj.x > this.width) {
-        this.missedWord = word.japanese + " - " + wanakana.toRomaji(word.japanese)
+        this.missedWord =
+          word.japanese + " - " + wanakana.toRomaji(word.japanese)
         missedWords.push(word)
       }
     }
@@ -454,11 +456,6 @@ export default class App extends Vue {
   removeWord(word: Word) {
     this.pixi.stage.removeChild(word.obj)
     this.words.splice(this.words.indexOf(word), 1)
-
-    // Make sure player always has a word
-    if (this.words.length === 0) {
-      this.addNextWord()
-    }
   }
 
   checkAttempt() {
@@ -471,7 +468,7 @@ export default class App extends Vue {
     }
 
     for (const word of completedWords) {
-      this.score += kanaOnly(word.japanese).length
+      this.score += word.romaji.length
       this.wordsCompleted += 1
 
       const text = new PIXI.Text(word.english)
@@ -596,11 +593,14 @@ export default class App extends Vue {
     const lowerScores = q2r.docs.map((d) => d.data())
 
     // Check if we're in the top 50; if so, we get ranked numerically
-    let rank: number|null = null
+    let rank: number | null = null
     for (let i = 0; i < top50Scores.length; i++) {
       const entry = top50Scores[i]
-      if (this.score > entry.score || (this.score === entry.score && this.wpm > entry.wpm)) {
-        rank = 1+i
+      if (
+        this.score > entry.score ||
+        (this.score === entry.score && this.wpm > entry.wpm)
+      ) {
+        rank = 1 + i
         break
       }
     }
