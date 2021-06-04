@@ -303,14 +303,13 @@ export default class App extends Vue {
 
     this.wordScale = this.rowHeight / (height+this.hintHeight)
 
-    this.frame = this.frame.bind(this)
     this.pixi.ticker.add(this.frame)
     this.attemptInput.focus()
     this.onResize()
 
-    this.keydown = this.keydown.bind(this)
     window.addEventListener("keydown", this.keydown)
     window.addEventListener("keyup", this.keyup)
+    window.addEventListener("click", this.windowclick)
 
     // while (this.freeSlots.length > 0)
     this.addNextWord()
@@ -319,6 +318,7 @@ export default class App extends Vue {
   destroyed() {
     window.removeEventListener("keydown", this.keydown)
     window.removeEventListener("keyup", this.keyup)
+    window.removeEventListener("click", this.windowclick)
   }
 
   keydown(ev: KeyboardEvent) {
@@ -345,6 +345,12 @@ export default class App extends Vue {
   keyup(ev: KeyboardEvent) {
     if (ev.key === "Shift") {
       this.deactivateHints()
+    }
+  }
+
+  windowclick(ev: MouseEvent) {
+    if (!this.gameOver) {
+      this.attemptInput.focus()
     }
   }
 
