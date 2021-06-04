@@ -76,13 +76,15 @@
           ref="attemptInput"
           v-model="attempt"
           autofocus
+          :disabled="hintsActive"
         />
       </form>
-      <div class="stats ms-auto">
-        Score: <span>{{ score }}</span> WPM: <span>{{ wpm }}</span> Misses:
-        <span class="misses">{{ wordsMissed }}</span> Missed word:
-        <span>{{ missedWord }}</span>
-      </div>
+      <ul class="stats d-flex ms-auto">
+        <li>Score: <span>{{ score }}</span></li>
+        <li>WPM: <span>{{ wpm }}</span></li>
+        <li>Misses: <span class="misses">{{ wordsMissed }}</span></li>
+        <li>Hints: Hold <span>Shift</span></li>
+      </ul>
     </div>
   </main>
 </template>
@@ -190,7 +192,6 @@ export default class App extends Vue {
   floatScore: number = 0
   wordsCompleted: number = 0
   wordsMissed: number = 0
-  missedWord: string = ""
   hintsActive: boolean = false
 
   gameOver: boolean = false
@@ -358,8 +359,9 @@ export default class App extends Vue {
     this.hintsActive = true
   }
 
-  deactivateHints(){
+  deactivateHints() {
     this.hintsActive = false
+    this.$nextTick(() => this.attemptInput.focus())
   }
 
   onResize() {
@@ -469,8 +471,6 @@ export default class App extends Vue {
       word.obj.x += (deltaTime * rate) / 30
 
       if (word.obj.x > this.width) {
-        this.missedWord =
-          word.japanese + " - " + wanakana.toRomaji(word.japanese)
         missedWords.push(word)
         continue
       }
@@ -753,31 +753,22 @@ export default class App extends Vue {
   border-top: 1px solid violet
   color: violet
 
-.attemptInput
-  border: none
-  background: none
-  color: white
-  outline: none
+  .attemptInput
+    border: none
+    background: none
+    color: white
+    outline: none
 
-.japanese
-  font-size: 1.6rem
+  .stats
+    margin: 0
+    opacity: 0.9
+    color: #00bc8c
 
-.donepart
-  color: lightgreen
+    li
+      list-style-type: none
 
-.stats
-  opacity: 0.9
-  color: #00bc8c
-
-  span
-    display: inline-block
-    min-width: 2rem
-    color: #3498db
-
-.controls
-  margin-top: 2rem
-  float: right
-
-  .btn
-    color: #999
+    span
+      display: inline-block
+      min-width: 2rem
+      color: #3498db
 </style>
