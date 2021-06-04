@@ -34,6 +34,11 @@ import * as PIXI from "pixi.js"
 import Postgame from './Postgame.vue'
 import * as wordsets from './wordsets'
 import { WordsetItem } from "./wordsets"
+import { matchAttempt } from "./jputil"
+import * as jputil from './jputil'
+
+;(window as any).jputil = jputil // For debugging
+
 
 type Word = {
   wsi: WordsetItem
@@ -406,21 +411,7 @@ export default class Game extends Vue {
   }
 
   matchAttemptTo(wsi: WordsetItem) {
-    const tokens = _.clone(wsi.tokens).reverse()
-    const doneTokens: WordsetItem['tokens'] = []
-
-    while (tokens.length > 0) {
-      const expectedAttempt = doneTokens.map(t => t.romaji).join("") + tokens[tokens.length-1].romaji
-      if (this.attempt.startsWith(expectedAttempt))
-        doneTokens.push(tokens.pop()!)
-      else
-        break
-    }
-
-    const donePart = doneTokens.map(t => t.jp).join("")
-    const remainingPart = tokens.map(t => t.jp).reverse().join("")
-
-    return { donePart, remainingPart }
+    return matchAttempt(this.attempt, wsi.jp)
   }
 
   get voice(): SpeechSynthesisVoice | null {

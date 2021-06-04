@@ -93,13 +93,9 @@ initializeApp({
 
 import { Component, Vue } from "vue-property-decorator"
 import _ from "lodash"
-import * as wanakana from "wanakana"
 import Game from "./Game.vue"
 import type { GameOptions, OnlinePlayer, ServerScoreData } from "./types"
 import { doc, getDoc, getFirestore } from 'firebase/firestore'
-
-declare const window: any
-window.wanakana = wanakana // For debugging
 
 @Component({
   components: {
@@ -147,7 +143,7 @@ export default class App extends Vue {
   }
 
   destroyed() {
-    window.removeEventListener(this.keydown)
+    window.removeEventListener("keydown", this.keydown)
   }
 
   get voiceOptions() {
