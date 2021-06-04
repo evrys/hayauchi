@@ -165,7 +165,7 @@ export default class App extends Vue {
   }
 
   get canStart() {
-    return this.options.pokemon || this.options.loanwords
+    return this.options.pokemon || this.options.loanwords || this.options.n5
   }
 
   startGame() {
