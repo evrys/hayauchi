@@ -107,6 +107,7 @@ import {
   doc
 } from "firebase/firestore"
 import { OnlinePlayer, ServerScoreData } from "./types"
+import Filter from 'bad-words'
 
 type LeaderboardEntry = { rank: number } & ServerScoreData
 
@@ -234,7 +235,11 @@ export default class Postgame extends Vue {
   async showLeaderboard() {
     this.showingLeaderboard = true
 
-    const name = this.nameForLeaderboard?.trim()
+    let name = this.nameForLeaderboard?.trim()
+
+    // Everyone loves 🧇
+    const filter = new Filter()
+    name = filter.clean(name).replace(/\*+/g, 'waffles')
     if (name) {
       // Record name for high score!
       const db = getFirestore()

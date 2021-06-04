@@ -8,9 +8,11 @@
     "deploy": "vue-cli-service build && netlify deploy --prod -d dist"
   },
   "dependencies": {
+    "@types/bad-words": "^3.0.0",
     "@types/lodash": "^4.14.169",
     "@types/uuid": "^8.3.0",
     "@types/wanakana": "^4.0.2",
+    "bad-words": "^3.0.4",
     "bootstrap": "^5.0.1",
     "bootswatch": "^5.0.1",
     "core-js": "^3.6.5",
