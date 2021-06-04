@@ -1,6 +1,7 @@
 export type GameOptions = {
   pokemon: boolean
   loanwords: boolean
+  n5: boolean
   voice: string|null
 }
 

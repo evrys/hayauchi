@@ -22,13 +22,13 @@
       <section class="wordsetSetting">
         <h6>Katakana</h6>
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" value="" id="loanwords" v-model="options.loanwords">
+          <input class="form-check-input" type="checkbox" id="loanwords" v-model="options.loanwords">
           <label class="form-check-label" for="loanwords">
             Loanwords
           </label>
         </div>
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" value="" id="pokemon" v-model="options.pokemon">
+          <input class="form-check-input" type="checkbox" id="pokemon" v-model="options.pokemon">
           <label class="form-check-label" for="pokemon">
             Pokémon Names
           </label>
@@ -44,7 +44,13 @@
 
       <section>
         <h6>Kanji</h6>
-        <div><em>Coming soon...</em></div>
+
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="n5" v-model="options.n5">
+          <label class="form-check-label" for="n5">
+            JLPT N5 Vocab
+          </label>
+        </div>
       </section>
 
       <section class="voiceSetting" v-if="voiceOptions.length > 0">
@@ -169,8 +175,9 @@ export default class App extends Vue {
 
   get defaultGameOptions(): GameOptions {
     return {
-      pokemon: true,
       loanwords: true,
+      pokemon: false,
+      n5: false,
       voice: this.defaultVoiceName
     }
   }

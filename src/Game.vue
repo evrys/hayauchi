@@ -29,63 +29,15 @@
 <script lang="ts">
 import { Component, Prop, Ref, Vue } from "vue-property-decorator"
 import _ from "lodash"
-import * as wanakana from "wanakana"
 import type { GameOptions, OnlinePlayer } from "./types"
 import * as PIXI from "pixi.js"
 import Postgame from './Postgame.vue'
-
-// @ts-ignore
-import pokenames from "../data/pokenames.json"
-
-
-import loanwords from "./loanwords"
-
-const nonKanaRegex = /[^あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわゐゑをんがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽぁぃぅぇぉアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヰヱヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポァィゥェォーャョュェッっゃょゅぇ]/g
-function kanaOnly(s: string): string {
-  s = s.replaceAll(/～/g, "ー")
-
-  return s.replaceAll(nonKanaRegex, "")
-}
-
-/**
- * Break a Japanese word into the smallest possible atoms
- * that can be independently transliterated to romaji
- * 
- * e.g. チャージ => ["チャー", "ジ"]
- * 
- * TODO kanji handling
- */
-function tokenize(jp: string): string[] {
-  jp = kanaOnly(jp)
-  const kana = []
-
-  const beforeModifiers = ["ッ", "っ"]
-  const afterModifiers = ["ー", "ャ", "ョ", "ュ", "ェ", "ゃ", "ょ", "ゅ", "ぇ"]
-
-  for (let i = 0; i < jp.length; i++) {
-    let j = i
-    while (beforeModifiers.indexOf(jp[j]) !== -1) {
-      j += 1
-    }
-    while (afterModifiers.indexOf(jp[j + 1]) !== -1) {
-      j += 1
-    }
-
-    if (j > i) {
-      kana.push(jp.slice(i, j + 1))
-      i = j
-    } else {
-      kana.push(jp.slice(i, i + 1))
-    }
-  }
-
-  return kana
-}
+import * as wordsets from './wordsets'
+import { WordsetItem } from "./wordsets"
 
 type Word = {
-  japanese: string
+  wsi: WordsetItem
   romaji: string
-  english: string
   slot: number
   obj: PIXI.Container
   doneText: PIXI.Text
@@ -106,6 +58,11 @@ export default class Game extends Vue {
   @Prop({ type: Object, required: true }) options!: GameOptions
   @Prop({ type: Object, default: null }) onlinePlayer!: OnlinePlayer|null
   @Ref() readonly attemptInput!: HTMLInputElement
+
+  /** Combined wordset of all wordsets selected in game options */
+  wordset: WordsetItem[] = []
+  /** Next word to add from the wordset */
+  nextWordIndex: number = 0
 
   attempt: string = ""
   floatScore: number = 0
@@ -153,7 +110,6 @@ export default class Game extends Vue {
 
   pixi!: PIXI.Application
   words: Word[] = []
-  wordset: [string, string][] = []
 
   translations = new PIXI.Container()
 
@@ -191,11 +147,11 @@ export default class Game extends Vue {
   created() {
     ;(window as any).game = this
 
-    if (this.options.pokemon) this.wordset.push(...pokenames)
+    if (this.options.pokemon) this.wordset.push(...wordsets.getPokenames())
 
-    if (this.options.loanwords) this.wordset.push(...loanwords)
+    if (this.options.loanwords) this.wordset.push(...wordsets.getLoanwords())
 
-    this.wordset = _.shuffle(_.uniqBy(this.wordset, (w) => w[0]))
+    this.wordset = _.shuffle(this.wordset)
     // this.wordset = _.reverse(_.uniqBy(this.wordset, (w) => w[0]))
   }
 
@@ -283,8 +239,12 @@ export default class Game extends Vue {
     const slot = _.sample(freeSlots)
     if (slot == null) return
 
-    const [jp, eng] = this.wordset.pop()!
-
+    // Pick the next word to show
+    const wsi = this.wordset[this.nextWordIndex]!
+    this.nextWordIndex += 1
+    if (this.nextWordIndex >= this.wordset.length) {
+      this.nextWordIndex = 0
+    }
 
     // This will contain the word and hint text components, so they
     // can be scaled and moved along the screen as a group
@@ -298,7 +258,7 @@ export default class Game extends Vue {
     // Each word is composed of two pixi parts. doneText
     // will become the green highlighted part that matches the romaji input
     const doneText = new PIXI.Text("", this.doneStyle)
-    const remainingText = new PIXI.Text(jp, this.wordStyle)
+    const remainingText = new PIXI.Text(wsi.jp, this.wordStyle)
     doneText.position.y = this.hintHeight
     remainingText.position.y = this.hintHeight
     wordObj.addChild(doneText)
@@ -309,9 +269,9 @@ export default class Game extends Vue {
     const hintObj = new PIXI.Container()
     hintObj.alpha = 0.0
     let hintOffset = 0
-    for (const token of tokenize(jp)) {
-      const tokenWidth = PIXI.TextMetrics.measureText(token, this.wordStyle).width
-      const hintText = new PIXI.Text(wanakana.toRomaji(token), this.hintStyle)
+    for (const token of wsi.tokens) {
+      const tokenWidth = PIXI.TextMetrics.measureText(token.jp, this.wordStyle).width
+      const hintText = new PIXI.Text(token.romaji, this.hintStyle)
       hintText.x = hintOffset + tokenWidth/2
       hintText.anchor.x = 0.5
       hintObj.addChild(hintText)
@@ -320,16 +280,16 @@ export default class Game extends Vue {
     wordObj.addChild(hintObj)
 
 
+    const romaji = wsi.tokens.map(t => t.romaji).join("")
     this.words.push({
-      japanese: jp,
-      romaji: wanakana.toRomaji(kanaOnly(jp)),
-      english: eng,
+      wsi: wsi,
+      romaji: romaji,
       slot: slot,
       obj: wordObj,
       doneText: doneText,
       remainingText: remainingText,
       hintObj: hintObj,
-      speed: 0.2 * (5 / jp.length),
+      speed: 0.2 * (5 / romaji.length),
       alreadySpoken: false,
     })
   }
@@ -378,13 +338,13 @@ export default class Game extends Vue {
         continue
       }
 
-      const { donePart, remainingPart } = this.matchAttemptTo(word.japanese)
+      const { donePart, remainingPart } = this.matchAttemptTo(word.wsi)
       word.doneText.text = donePart
       word.remainingText.text = remainingPart
       word.remainingText.x = donePart.length > 0 ? word.doneText.width : 0
 
       if (remainingPart.length === 0 && !word.alreadySpoken) {
-        this.speak(word.japanese)
+        this.speak(word.wsi.jp)
         word.alreadySpoken = true
       }
 
@@ -420,7 +380,7 @@ export default class Game extends Vue {
     const completedWords = []
 
     for (const word of this.words) {
-      if (this.matchAttemptTo(word.japanese).remainingPart.length === 0) {
+      if (this.matchAttemptTo(word.wsi).remainingPart.length === 0) {
         completedWords.push(word)
       }
     }
@@ -429,7 +389,7 @@ export default class Game extends Vue {
       this.floatScore += word.romaji.length
       this.wordsCompleted += 1
 
-      const text = new PIXI.Text(word.english)
+      const text = new PIXI.Text(word.wsi.en)
       text.style = this.wordStyle
       text.scale.x = this.wordScale
       text.scale.y = this.wordScale
@@ -443,20 +403,20 @@ export default class Game extends Vue {
     this.attempt = ""
   }
 
-  matchAttemptTo(jp: string) {
-    const tokens: string[] = tokenize(jp).reverse()
-    const doneTokens: string[] = []
+  matchAttemptTo(wsi: WordsetItem) {
+    const tokens = _.clone(wsi.tokens).reverse()
+    const doneTokens: WordsetItem['tokens'] = []
 
     while (tokens.length > 0) {
-      const expectedAttempt = doneTokens.map(t => wanakana.toRomaji(t)).join("") + wanakana.toRomaji(tokens[tokens.length-1])
+      const expectedAttempt = doneTokens.map(t => t.romaji).join("") + tokens[tokens.length-1].romaji
       if (this.attempt.startsWith(expectedAttempt))
         doneTokens.push(tokens.pop()!)
       else
         break
     }
 
-    const donePart = doneTokens.join("")
-    const remainingPart = tokens.reverse().join("")
+    const donePart = doneTokens.map(t => t.jp).join("")
+    const remainingPart = tokens.map(t => t.jp).reverse().join("")
 
     return { donePart, remainingPart }
   }
