@@ -104,8 +104,7 @@ import {
   orderBy,
   serverTimestamp,
   setDoc,
-  doc,
-  getDoc,
+  doc
 } from "firebase/firestore"
 import { OnlinePlayer, ServerScoreData } from "./types"
 
@@ -119,7 +118,7 @@ export default class Postgame extends Vue {
 
   /** Up to 10 scores, including ours, centered on us */
   leaderboard: LeaderboardEntry[] = []
-  nameForLeaderboard: string = ""
+  nameForLeaderboard: string = this.onlinePlayer?.prevScoreData?.name || ""
   showingLeaderboard: boolean = false
 
   get previousScore() {
