@@ -151,8 +151,6 @@ export default class Game extends Vue {
     if (this.options.loanwords) this.wordset.push(...wordsets.getLoanwords())
     if (this.options.n5) this.wordset.push(...wordsets.getN5Vocab())
 
-    console.log(this.wordset)
-
     this.wordset = _.shuffle(this.wordset)
     // this.wordset = _.reverse(_.uniqBy(this.wordset, (w) => w[0]))
   }
@@ -328,7 +326,9 @@ export default class Game extends Vue {
 
     // Drain score while using hints
     if (this.hintsActive) {
-      this.floatScore -= deltaTime/60
+      this.floatScore -= deltaTime/30
+      if (this.floatScore <= 0)
+        this.floatScore = 0
     }
 
     const missedWords: Word[] = []
