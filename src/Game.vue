@@ -2,70 +2,7 @@
   <main>
     <div class="canvasContainer">
       <canvas width="800" height="600" />
-      <div v-if="gameOver" class="postgame">
-        <div v-if="!showingLeaderboard">
-          <h3>Game complete!</h3>
-          <p>You achieved:</p>
-
-          <table>
-            <tr>
-              <td>Score:</td>
-              <td>{{ score }}</td>
-            </tr>
-            <tr>
-              <td>WPM:</td>
-              <td>{{ wpm }}</td>
-            </tr>
-          </table>
-
-          <form @submit.prevent="showLeaderboard">
-            <input
-              type="text"
-              class="nameInput"
-              placeholder="Name for leaderboard"
-              v-model="nameForLeaderboard"
-              autofocus
-            />
-            <div class="d-flex">
-              <button type="submit" class="btn btn-primary">
-                Record Score
-              </button>
-              <button class="btn btn-sm ms-auto" @click.prevent="$emit('exit')">
-                Exit to Menu
-              </button>
-            </div>
-          </form>
-        </div>
-        <div class="leaderboard" v-else>
-          <h3>High Scores</h3>
-          <table class="table">
-            <thead>
-              <tr>
-                <th v-if="leaderboard.length && leaderboard[0].rank">Rank</th>
-                <th>Name</th>
-                <th>Score</th>
-                <th>WPM</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="entry in leaderboard"
-                :key="entry.id"
-                :class="{ mine: entry.mine }"
-              >
-                <td v-if="entry.rank">{{ entry.rank }}.</td>
-                <td v-if="entry.mine">{{ nameForLeaderboard }}</td>
-                <td v-else>{{ entry.name }}</td>
-                <td>{{ entry.score }}</td>
-                <td>{{ entry.wpm }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <button class="btn btn-sm ms-auto" @click.prevent="$emit('exit')">
-            Exit to Menu
-          </button>
-        </div>
-      </div>
+      <Postgame v-if="gameOver" :onlinePlayer="onlinePlayer" :score="score" :wpm="wpm" @exit="$emit('exit')"/>
     </div>
     <div class="under d-flex" v-if="!gameOver">
       <form @submit.prevent="checkAttempt">
@@ -90,25 +27,18 @@
 </template>
 
 <script lang="ts">
-import { Component, Prop, Ref, Vue, Watch } from "vue-property-decorator"
+import { Component, Prop, Ref, Vue } from "vue-property-decorator"
 import _ from "lodash"
 import * as wanakana from "wanakana"
-import type { GameOptions } from "./types"
+import type { GameOptions, OnlinePlayer } from "./types"
 import * as PIXI from "pixi.js"
+import Postgame from './Postgame.vue'
+
 // @ts-ignore
 import pokenames from "../data/pokenames.json"
+
+
 import loanwords from "./loanwords"
-import {
-  getFirestore,
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  limit,
-  addDoc,
-  serverTimestamp,
-} from "firebase/firestore"
 
 const nonKanaRegex = /[^あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわゐゑをんがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽぁぃぅぇぉアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヰヱヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポァィゥェォーャョュェッっゃょゅぇ]/g
 function kanaOnly(s: string): string {
@@ -165,27 +95,16 @@ type Word = {
   alreadySpoken: boolean
 }
 
-type LeaderboardEntry = {
+type LeaderboardEntry = { 
   rank: number
-  score: number
-  wpm: number
-  timestamp: number
-} & (
-  | {
-      id: string
-      name: string
-    }
-  | {
-      id: "mine"
-      mine: true
-    }
-)
+}
 
 @Component({
-  components: {},
+  components: { Postgame },
 })
-export default class App extends Vue {
+export default class Game extends Vue {
   @Prop({ type: Object, required: true }) options!: GameOptions
+  @Prop({ type: Object, default: null }) onlinePlayer!: OnlinePlayer|null
   @Ref() readonly attemptInput!: HTMLInputElement
 
   attempt: string = ""
@@ -195,11 +114,6 @@ export default class App extends Vue {
   hintsActive: boolean = false
 
   gameOver: boolean = false
-  nameForLeaderboard: string = ""
-  showingLeaderboard: boolean = false
-
-  /** Up to 10 scores, including ours, centered on us */
-  leaderboard: LeaderboardEntry[] = []
 
   startTime: number = Date.now()
   timestamp: number = Date.now()
@@ -214,26 +128,26 @@ export default class App extends Vue {
 
   wordScale: number = 1
 
-  wordStyle = new PIXI.TextStyle({
+  readonly wordStyle = new PIXI.TextStyle({
     fill: "#ffffff",
     fontSize: 26
   })
-  doneStyle = new PIXI.TextStyle({
+  readonly doneStyle = new PIXI.TextStyle({
     fill: "lightgreen",
     fontSize: 26
   })
-  warningStyle = new PIXI.TextStyle({
+  readonly warningStyle = new PIXI.TextStyle({
     fill: "#f1a52e",
     fontSize: 26
   })
-  hintStyle = new PIXI.TextStyle({
+  readonly hintStyle = new PIXI.TextStyle({
     fill: "#ffffff",
     fontSize: 16
   })
 
-  hintHeight: number = PIXI.TextMetrics.measureText("waffles", this.hintStyle).height
-
-
+  readonly wordHeight: number = PIXI.TextMetrics.measureText("waffles", this.wordStyle).height
+  readonly hintHeight: number = PIXI.TextMetrics.measureText("waffles", this.hintStyle).height
+  
   width: number = 800 / window.devicePixelRatio
   height: number = 600 / window.devicePixelRatio
 
@@ -299,10 +213,7 @@ export default class App extends Vue {
 
     // Calculate how much we need to scale words by to have them fill the row
     // Leaving room for the romaji hint text above
-    const height = PIXI.TextMetrics.measureText("waffles", this.wordStyle)
-      .height
-
-    this.wordScale = this.rowHeight / (height+this.hintHeight)
+    this.wordScale = this.rowHeight / (this.wordHeight+this.hintHeight)
 
     this.pixi.ticker.add(this.frame)
     this.attemptInput.focus()
@@ -323,23 +234,15 @@ export default class App extends Vue {
   }
 
   keydown(ev: KeyboardEvent) {
+    if (this.gameOver) return
+
     if (ev.key === "Escape") {
-      if (!this.gameOver) {
-        // End game
-        this.wordsMissed = 10
-      } else {
-        this.$emit("exit")
-      }
+      // End game
+      this.wordsMissed = 10
     }
 
     if (ev.key === "Shift") {
       this.activateHints()
-    }
-
-    if (ev.key === "Enter") {
-      if (this.showingLeaderboard) {
-        this.$emit("exit")
-      }
     }
   }
 
@@ -361,7 +264,8 @@ export default class App extends Vue {
 
   deactivateHints() {
     this.hintsActive = false
-    this.$nextTick(() => this.attemptInput.focus())
+    if (!this.gameOver)
+      this.$nextTick(() => this.attemptInput.focus())
   }
 
   onResize() {
@@ -443,7 +347,6 @@ export default class App extends Vue {
         return
       }
 
-      this.fetchLeaderboard()
       this.$nextTick(() =>
         (document.getElementsByClassName(
           "nameInput"
@@ -592,161 +495,12 @@ export default class App extends Vue {
     utter.pitch = _.random(0.9, 1.1, true)
     speechSynthesis.speak(utter)
   }
-
-  async fetchLeaderboard() {
-    const db = getFirestore()
-    const leaderboardRef = collection(db, "leaderboard")
-
-    const top50q = query(
-      leaderboardRef,
-      orderBy("score", "desc"),
-      orderBy("wpm", "desc"),
-      orderBy("timestamp", "asc"),
-      limit(50)
-    )
-    const q1 = query(
-      leaderboardRef,
-      where("score", ">", this.score),
-      orderBy("score", "desc"),
-      orderBy("wpm", "desc"),
-      orderBy("timestamp", "asc"),
-      limit(10)
-    )
-    const q2 = query(
-      leaderboardRef,
-      where("score", "<=", this.score),
-      orderBy("score", "desc"),
-      orderBy("wpm", "desc"),
-      orderBy("timestamp", "asc"),
-      limit(10)
-    )
-
-    const [top50r, q1r, q2r] = await Promise.all([
-      getDocs(top50q),
-      getDocs(q1),
-      getDocs(q2),
-    ])
-
-    const top50Scores = top50r.docs.map((d) => d.data())
-    const higherScores = q1r.docs.map((d) => d.data())
-    const lowerScores = q2r.docs.map((d) => d.data())
-
-    // Check if we're in the top 50; if so, we get ranked numerically
-    let rank: number | null = null
-    for (let i = 0; i < top50Scores.length; i++) {
-      const entry = top50Scores[i]
-      if (
-        this.score > entry.score ||
-        (this.score === entry.score && this.wpm > entry.wpm)
-      ) {
-        rank = 1 + i
-        break
-      }
-    }
-
-    const mine = {
-      id: "mine",
-      rank: rank,
-      score: this.score,
-      wpm: this.wpm,
-      timestamp: Infinity,
-      mine: true,
-    }
-
-    let nearbyScores = higherScores
-      .concat([mine])
-      .concat(lowerScores) as LeaderboardEntry[]
-
-    // We need to recalc the ordering to make sure our score goes in the right place
-    nearbyScores = _.orderBy(nearbyScores, [
-      (d) => -d.score,
-      (d) => -d.wpm,
-      (d) => d.timestamp,
-    ])
-
-    // If we're numerically ranked, calculate rank for nearby scores based on ours
-    const localIndex = nearbyScores.indexOf(mine as LeaderboardEntry)
-    if (rank) {
-      for (let i = 0; i < nearbyScores.length; i++) {
-        nearbyScores[i].rank = rank + (i - localIndex)
-      }
-    }
-
-    // Now extract the 10 we actually want to show
-    const toShow: LeaderboardEntry[] = [mine as LeaderboardEntry]
-    let i = localIndex - 1
-    let j = localIndex + 1
-    while (toShow.length < 10) {
-      const higher = nearbyScores[i]
-      const lower = nearbyScores[j]
-
-      if (!higher && !lower) break
-
-      if (higher) {
-        toShow.unshift(higher)
-        i -= 1
-      }
-
-      if (lower) {
-        toShow.push(lower)
-        j += 1
-      }
-    }
-
-    this.leaderboard = toShow
-  }
-
-  async showLeaderboard() {
-    const name = this.nameForLeaderboard.trim()
-    if (!name) return
-
-    this.showingLeaderboard = true
-
-    // Record our score. We don't need to wait for this to finish before showing it to player
-    const db = getFirestore()
-    const leaderboardRef = collection(db, "leaderboard")
-    await addDoc(leaderboardRef, {
-      name: name,
-      score: this.score,
-      wpm: this.wpm,
-      timestamp: serverTimestamp(),
-    })
-  }
 }
 </script>
 
 <style lang="sass">
 .canvasContainer
   position: relative
-
-.postgame
-  background-color: rgba(34, 34, 34, 0.9)
-  position: absolute
-  left: 0
-  top: 0
-  width: 100%
-  height: 100%
-  display: flex
-  align-items: center
-  justify-content: center
-
-  .nameInput
-    padding: 1rem
-    background: none
-    border: 1px solid #ccc
-    display: block
-    min-width: 300px
-    margin-top: 1rem
-    margin-bottom: 1rem
-    color: white
-    outline: none
-
-  .btn-sm
-    color: #999
-
-  .leaderboard
-    tr.mine td
-      background-color: #257d00
 
 .under
   padding-top: 1rem

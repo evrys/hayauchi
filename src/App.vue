@@ -33,6 +33,18 @@
             Pokémon Names
           </label>
         </div>
+
+
+      </section>
+
+      <section>
+        <h6>Hiragana</h6>
+        <div><em>Coming soon...</em></div>
+      </section>
+
+      <section>
+        <h6>Kanji</h6>
+        <div><em>Coming soon...</em></div>
       </section>
 
       <section class="voiceSetting" v-if="voiceOptions.length > 0">
@@ -55,7 +67,7 @@
     <p>The game ends after 10 missed words.<br/> Type as many as you can to get the highest score!</p>
     <button class="btn btn-primary" @click.prevent="startGame" :disabled="!canStart">Start</button>
   </main>
-  <Game v-else :options="options" @exit="gameStarted = false"/>
+  <Game v-else :options="options" :onlinePlayer="onlinePlayer" @exit="gameStarted = false"/>
 </template>
 
 <script lang="ts">
@@ -77,7 +89,8 @@ import { Component, Vue } from "vue-property-decorator"
 import _ from "lodash"
 import * as wanakana from "wanakana"
 import Game from "./Game.vue"
-import type { GameOptions } from "./types"
+import type { GameOptions, OnlinePlayer, ServerScoreData } from "./types"
+import { doc, getDoc, getFirestore } from 'firebase/firestore'
 
 declare const window: any
 window.wanakana = wanakana // For debugging
@@ -91,6 +104,7 @@ export default class App extends Vue {
   gameStarted: boolean = false
   browserVoices: SpeechSynthesisVoice[] = []
   options: GameOptions = this.defaultGameOptions
+  onlinePlayer: OnlinePlayer|null = null
 
   async created() {
     this.keydown = this.keydown.bind(this)
@@ -105,8 +119,25 @@ export default class App extends Vue {
 
     // This auth will be used for the leaderboard later, let's sign in now
     const auth = getAuth()
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        this.fetchPlayerData(user.uid)
+      }
+    })
+
     await setPersistence(auth, browserLocalPersistence)
     signInAnonymously(auth)
+  }
+
+  async fetchPlayerData(userId: string) {
+    const db = getFirestore()
+    const prevScoreData = (await getDoc(doc(db, "scores", userId))).data() as ServerScoreData|null
+   
+    this.onlinePlayer = {
+      userId: userId,
+      prevScoreData: prevScoreData
+    }
   }
 
   destroyed() {
