@@ -1,5 +1,7 @@
 import hepburn from 'hepburn'
 
+;(window as any).hepburn = hepburn
+
 const nonKanaRegex = /[^あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわゐゑをんがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽぁぃぅぇぉアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヰヱヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポァィゥェォーャョュェッっゃょゅぇ]/g
 export function kanaOnly(s: string): string {
   s = s.replaceAll(/～/g, "ー")
@@ -17,7 +19,7 @@ function expandMacrons(romaji: string): string {
 }
 
 export function toRomaji(kana: string): string {
-  return expandMacrons(hepburn.fromKana(kana).toLowerCase())
+  return expandMacrons(hepburn.fromKana(kana).toLowerCase()).replace(/[^a-z]/, '')
 }
 
 export function toKatakana(romaji: string): string {
@@ -68,29 +70,7 @@ export function toHiragana(romaji: string): string {
  * TODO kanji handling
  */
 export function tokenize(jp: string): PhoneticToken[] {
-  const bits = []
-
-  const beforeModifiers = ["ッ", "っ"]
-  const afterModifiers = ["ー", "ャ", "ョ", "ュ", "ェ", "ゃ", "ょ", "ゅ", "ぇ"]
-
-  for (let i = 0; i < jp.length; i++) {
-    let j = i
-    while (beforeModifiers.indexOf(jp[j]) !== -1) {
-      j += 1
-    }
-    while (afterModifiers.indexOf(jp[j + 1]) !== -1) {
-      j += 1
-    }
-
-    if (j > i) {
-      bits.push(jp.slice(i, j + 1))
-      i = j
-    } else {
-      bits.push(jp.slice(i, i + 1))
-    }
-  }
-
-  return bits.map(jp => ({
+  return phoneticKanaSplit(jp).map(jp => ({
     jp,
     romaji: toRomaji(jp)
   }))
@@ -102,12 +82,19 @@ export function matchAttempt(attempt: string, kana: string) {
   let donePart = ""
   let remainingPart = kana
 
+
+  let prevBitRomaji = ""
   for (let i = 0; i < kana.length; i++) {
     const bit = kana.slice(0, i+1)
     const bitRomaji = toRomaji(bit)
     if (!expectedRomaji.startsWith(bitRomaji)) {
       // Matching here would be misleading
-      // e.g. キャ shouldn't match to ki
+      // e.g. ki shouldn't match any of キャ
+      continue
+    }
+
+    if (i < kana.length-1 && bitRomaji.length <= prevBitRomaji.length) {
+      // Avoid matching kya to all of キャッ
       continue
     }
 
@@ -116,6 +103,8 @@ export function matchAttempt(attempt: string, kana: string) {
       donePart = bit
       remainingPart = kana.slice(i+1)
     }
+
+    prevBitRomaji = bitRomaji
   }
 
   return { donePart, remainingPart }

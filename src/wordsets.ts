@@ -12,7 +12,7 @@ import loanwordRows from '../data/loanwords.tsv'
 export function getLoanwords(): WordsetItem[] {
   const rows = loanwordRows as [string, string]
   return rows.map(r => ({
-    jp: r[0],
+    jp: kanaOnly(r[0]),
     en: r[1],
     tokens: tokenize(kanaOnly(r[0]))
   }))
@@ -23,7 +23,7 @@ import pokenameRows from '../data/pokenames'
 export function getPokenames(): WordsetItem[] {
   const rows = pokenameRows as [string, string][]
   return rows.map(r => ({
-    jp: r[0],
+    jp: kanaOnly(r[0]),
     en: r[1],
     tokens: tokenize(kanaOnly(r[0]))
   }))
