@@ -1,8 +1,9 @@
 
-import { containsKanji, containsKatakana, kanaOnly, PhoneticToken, tokenize } from './jputil'
+import { containsKanji, containsKatakana, kanaOnly, PhoneticToken, toKatakana, tokenize, toRomaji } from './jputil'
 
 export type WordsetItem = {
   jp: string
+  reading?: string
   en: string
   tokens: PhoneticToken[]
 }
@@ -30,17 +31,6 @@ export function getPokenames(): WordsetItem[] {
 }
 
 // @ts-ignore
-import n5KanjiRows from '../data/JLPT5_Kanji.tsv'
-export function getN5KanjiVocab(): WordsetItem[] {
-  const rows = n5KanjiRows as [string, string, string][]
-  return rows.map(r => ({
-    jp: r[0],
-    en: r[2],
-    tokens: [{ jp: r[0], romaji: r[1] }]
-  }))
-}
-
-// @ts-ignore
 import n5HiraganaRows from '../data/JLPT5_Hiragana.tsv'
 export function getN5HiraganaVocab(): WordsetItem[] {
   const rows = n5HiraganaRows as [string, string][]
@@ -51,6 +41,33 @@ export function getN5HiraganaVocab(): WordsetItem[] {
   }))
 }
 
+// @ts-ignore
+import n5KanjiRows from '../data/alignment_test.tsv'
+export function getN5KanjiVocab(): WordsetItem[] {
+  const rows = n5KanjiRows as [string, string, string, string][]
+  return rows.slice(1).map(r => {
+    const jpBits = r[0].split(" ")
+    const kanaBits = r[1].split(" ")
+    const en = r[3]
+
+    const tokens: PhoneticToken[] = []
+    for (let i = 0; i < jpBits.length; i++) {
+      tokens.push({
+        jp: jpBits[i],
+        kana: kanaBits[i],
+        romaji: toRomaji(kanaBits[i]),
+        isKanaOnly: jpBits[i] === kanaBits[i]
+      })
+    }
+
+    return { 
+      jp: jpBits.join(""),
+      kana: kanaBits.join(""),
+      en,
+      tokens
+    }
+  })
+}
 // // @ts-ignore
 // import jlptrows from '../data/JLPT5_Vocab.tsv'
 // export function getJLPTVocab() {

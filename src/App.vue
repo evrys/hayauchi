@@ -43,7 +43,7 @@
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="n5Hiragana" v-model="options.n5Hiragana">
           <label class="form-check-label" for="n5Hiragana">
-            JLPT N5 Vocab
+            Common Words
           </label>
         </div>
       </section>
@@ -177,9 +177,9 @@ export default class App extends Vue {
 
   get defaultGameOptions(): GameOptions {
     return {
-      loanwords: true,
+      loanwords: false,
       pokemon: false,
-      n5Kanji: false,
+      n5Kanji: true,
       n5Hiragana: false,
       voice: this.defaultVoiceName
     }

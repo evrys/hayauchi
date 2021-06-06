@@ -27,48 +27,46 @@ describe('jputil', () => {
   it('aligns kanji-containing vocab parts with their readings', async () => {
     expect(splitKanaBoundaries("お兄さん")).toEqual(["お", "兄", "さん"])
     expect(splitKanaBoundaries("可愛い")).toEqual(["可愛", "い"])
+    // expect(alignKanjiReading("お兄さん", "おにいさん")).toEqual([
+    //   ['お', 'お'],
+    //   ['兄', 'にい'],
+    //   ['さん', 'さん']
+    // ])
 
-
-    expect(alignKanjiReading("お兄さん", "おにいさん")).toEqual([
-      ['お', 'お'],
-      ['兄', 'にい'],
-      ['さん', 'さん']
-    ])
-
-    expect(alignKanjiReading("可愛い", "かわいい")).toEqual([
-      ['可愛', 'かわい'],
-      ['い', 'い']
-    ])
+    // expect(alignKanjiReading("可愛い", "かわいい")).toEqual([
+    //   ['可愛', 'かわい'],
+    //   ['い', 'い']
+    // ])
   })
 
   // it('progressively and permissively matches romaji input to kana', async () => {
-  //   // naraberu
-  //   expect(matchAttempt("na", "並べる", "ならべる")).toEqual({
-  //     doneKanji: "",
-  //     doneKana: "な",
-  //     remainingKanji: "並べる",
-  //     remainingKana: "ならべる"
-  //   })
+    // // naraberu
+    // expect(matchAttempt("na", "並べる", "ならべる")).toEqual({
+    //   doneKanji: "",
+    //   doneKana: "な",
+    //   remainingKana: "並べる",
+    //   remainingKana: "ならべる"
+    // })
 
-  //   expect(matchAttempt("pa", "パー").doneKanji).toEqual("パ")
-  //   expect(matchAttempt("pa", "パー").remainingKanji).toEqual("ー")
-  //   expect(matchAttempt("paa", "パー").doneKanji).toEqual("パー")
-  //   expect(matchAttempt("paa", "パー").remainingKanji).toEqual("")
+    expect(matchAttempt("pa", "パー").doneKana).toEqual("パ")
+    expect(matchAttempt("pa", "パー").remainingKana).toEqual("ー")
+    expect(matchAttempt("paa", "パー").doneKana).toEqual("パー")
+    expect(matchAttempt("paa", "パー").remainingKana).toEqual("")
 
 
-  //   expect(matchAttempt("chiariidi", "チアリーディング").doneKanji).toEqual("チアリーディ")
+    expect(matchAttempt("chiariidi", "チアリーディング").doneKana).toEqual("チアリーディ")
 
-  //   expect(matchAttempt("ky", "キャッチコピー").doneKanji).toEqual("")
-  //   expect(matchAttempt("kya", "キャッチコピー").doneKanji).toEqual("キャ")
-  //   expect(matchAttempt("kyac", "キャッチコピー").doneKanji).toEqual("キャ")
-  //   expect(matchAttempt("kyacc", "キャッチコピー").doneKanji).toEqual("キャ")
-  //   expect(matchAttempt("kyacch", "キャッチコピー").doneKanji).toEqual("キャ")
-  //   expect(matchAttempt("kyacchi", "キャッチコピー").doneKanji).toEqual("キャッチ")
-  //   expect(matchAttempt("kyacchik", "キャッチコピー").doneKanji).toEqual("キャッチ")
-  //   expect(matchAttempt("kyacchiko", "キャッチコピー").doneKanji).toEqual("キャッチコ")
-  //   expect(matchAttempt("kyacchikop", "キャッチコピー").doneKanji).toEqual("キャッチコ")
-  //   expect(matchAttempt("kyacchikopi", "キャッチコピー").doneKanji).toEqual("キャッチコピ")
-  //   expect(matchAttempt("kyacchikopii", "キャッチコピー").doneKanji).toEqual("キャッチコピー")
+    expect(matchAttempt("ky", "キャッチコピー").doneKana).toEqual("")
+    expect(matchAttempt("kya", "キャッチコピー").doneKana).toEqual("キャ")
+    expect(matchAttempt("kyac", "キャッチコピー").doneKana).toEqual("キャ")
+    expect(matchAttempt("kyacc", "キャッチコピー").doneKana).toEqual("キャ")
+    expect(matchAttempt("kyacch", "キャッチコピー").doneKana).toEqual("キャ")
+    expect(matchAttempt("kyacchi", "キャッチコピー").doneKana).toEqual("キャッチ")
+    expect(matchAttempt("kyacchik", "キャッチコピー").doneKana).toEqual("キャッチ")
+    expect(matchAttempt("kyacchiko", "キャッチコピー").doneKana).toEqual("キャッチコ")
+    expect(matchAttempt("kyacchikop", "キャッチコピー").doneKana).toEqual("キャッチコ")
+    expect(matchAttempt("kyacchikopi", "キャッチコピー").doneKana).toEqual("キャッチコピ")
+    expect(matchAttempt("kyacchikopii", "キャッチコピー").doneKana).toEqual("キャッチコピー")
 
     
   // })

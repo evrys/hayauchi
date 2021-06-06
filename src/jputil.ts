@@ -1,6 +1,6 @@
 import hepburn from 'hepburn'
 
-;(window as any).hepburn = hepburn
+  ; (window as any).hepburn = hepburn
 
 const HIRAGANA = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわゐゑをんがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽぁぃぅぇぉ"
 const KATAKANA = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヰヱヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポァィゥェォーャョュェッっゃょゅぇ"
@@ -15,7 +15,9 @@ export function kanaOnly(s: string): string {
 
 export type PhoneticToken = {
   jp: string
+  kana: string
   romaji: string
+  isKanaOnly: boolean
 }
 
 function expandMacrons(romaji: string): string {
@@ -56,7 +58,7 @@ export function containsKana(s: string): boolean {
  * 
  * e.g. チャージ => ["チャー", "ジ"]
  */
- export function phoneticKanaSplit(jp: string): string[] {
+export function phoneticKanaSplit(jp: string): string[] {
   const bits = []
 
   const beforeModifiers = ["ッ", "っ"]
@@ -99,7 +101,7 @@ export function phoneticTokenize(jp: string, furigana: string) {
  * e.g. チャージ => ["チャー", "ジ"]
  * TODO kanji handling
  */
-export function tokenize(jp: string): PhoneticToken[] {
+export function tokenize(jp: string): any[] {
   return phoneticKanaSplit(jp).map(jp => ({
     jp,
     romaji: toRomaji(jp)
@@ -134,7 +136,7 @@ export function alignKanjiReading(jp: string, kana: string) {
   let kanaIndex = 0
   for (let i = 0; i < spl.length; i++) {
     const bit = spl[i]
-    const nextBit = spl[i+1]
+    const nextBit = spl[i + 1]
     const isKanaBit = containsKana(bit)
 
     let reading = ""
@@ -147,7 +149,7 @@ export function alignKanjiReading(jp: string, kana: string) {
           kanaIndex = j
           break
         }
-      } 
+      }
 
       reading += kana[j]
     }
@@ -158,14 +160,45 @@ export function alignKanjiReading(jp: string, kana: string) {
   return readings
 }
 
+export type TokenCompletion = {
+  doneKana: string
+  remainingKana: string
+}
+
+export function matchAttemptToTokens(attempt: string, tokens: PhoneticToken[]): TokenCompletion[] {
+  const fullKana = tokens.map(t => t.kana).join("")
+  const { doneKana, remainingKana } = matchAttempt(attempt, fullKana)
+
+  const tokenCompletion: TokenCompletion[] = tokens.map(t => {
+    return {
+      doneKana: "",
+      remainingKana: t.kana
+    }
+  })
+
+  let tokenKanaIndex = 0
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i]
+    const completion = tokenCompletion[i]
+    if (tokenKanaIndex + token.kana.length <= doneKana.length) {
+      // Fully completed this token
+      completion.doneKana = token.kana
+      completion.remainingKana = ""
+    } else {
+      
+      break
+    }
+  }
+
+  return tokenCompletion
+}
+
 export function matchAttempt(attempt: string, kana: string) {
   const expectedRomaji = toRomaji(kana)
-  let donePart = ""
-  let remainingPart = kana
-
+  let bestSlice = 0
   let prevBitRomaji = ""
   for (let i = 0; i < kana.length; i++) {
-    const bit = kana.slice(0, i+1)
+    const bit = kana.slice(0, i + 1)
     const bitRomaji = toRomaji(bit)
     if (!expectedRomaji.startsWith(bitRomaji)) {
       // Matching here would be misleading
@@ -173,19 +206,21 @@ export function matchAttempt(attempt: string, kana: string) {
       continue
     }
 
-    if (i < kana.length-1 && bitRomaji === prevBitRomaji) {
+    if (i < kana.length - 1 && bitRomaji === prevBitRomaji) {
       // Avoid matching kya to all of キャッ
       continue
     }
 
     const attemptBit = attempt.slice(0, bitRomaji.length)
     if (bitRomaji === attemptBit || toHiragana(bitRomaji) === toHiragana(attemptBit)) {
-      donePart = bit
-      remainingPart = kana.slice(i+1)
+      // Found a match!
+      bestSlice = i + 1
     }
 
     prevBitRomaji = bitRomaji
   }
 
-  return { donePart, remainingPart }
+  const doneKana = kana.slice(0, bestSlice)
+  const remainingKana = kana.slice(bestSlice)
+  return { doneKana, remainingKana }
 }

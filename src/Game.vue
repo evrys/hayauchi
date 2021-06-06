@@ -5,7 +5,7 @@
       <Postgame v-if="gameOver" :onlinePlayer="onlinePlayer" :score="score" :wpm="wpm" @exit="$emit('exit')"/>
     </div>
     <div class="under d-flex" v-if="!gameOver">
-      <form @submit.prevent="checkAttempt">
+      <form @submit.prevent="submitAttempt">
         <span>&gt; </span>
         <input
           type="text"
@@ -27,7 +27,7 @@
 </template>
 
 <script lang="ts">
-import { Component, Prop, Ref, Vue } from "vue-property-decorator"
+import { Component, Prop, Ref, Vue, Watch } from "vue-property-decorator"
 import _ from "lodash"
 import type { GameOptions, OnlinePlayer } from "./types"
 import * as PIXI from "pixi.js"
@@ -47,11 +47,19 @@ type Word = {
   romaji: string
   slot: number
   obj: PIXI.Container
-  doneText: PIXI.Text
-  remainingText: PIXI.Text
-  hintObj: PIXI.Container
+  tokenParts: TokenDisplayPart[],
   speed: number
   alreadySpoken: boolean
+}
+
+type TokenDisplayPart = {
+  token: jputil.PhoneticToken
+  tokenObj: PIXI.Container
+  remainingText: PIXI.Text
+  doneText: PIXI.Text
+  hintObj: PIXI.Container
+  hintText: PIXI.Text
+  doneHintText: PIXI.Text
 }
 
 type LeaderboardEntry = { 
@@ -106,6 +114,10 @@ export default class Game extends Vue {
   })
   readonly hintStyle = new PIXI.TextStyle({
     fill: "#ffffff",
+    fontSize: 16
+  })
+  readonly hintDoneStyle = new PIXI.TextStyle({
+    fill: "lightgreen",
     fontSize: 16
   })
 
@@ -263,30 +275,40 @@ export default class Game extends Vue {
     wordObj.scale.y = this.wordScale
     this.pixi.stage.addChild(wordObj)
 
-    // Each word is composed of two pixi parts. doneText
-    // will become the green highlighted part that matches the romaji input
-    const doneText = new PIXI.Text("", this.doneStyle)
-    const remainingText = new PIXI.Text(wsi.jp, this.wordStyle)
-    doneText.position.y = this.hintHeight
-    remainingText.position.y = this.hintHeight
-    wordObj.addChild(doneText)
-    wordObj.addChild(remainingText)
-
-    // The romaji hint is broken into a bunch of pixi parts so they
-    // can be positioned to match the corresponding tokens
-    const hintObj = new PIXI.Container()
-    hintObj.alpha = 0.0
-    let hintOffset = 0
+    let lastTokenX = 0
+    const tokenParts: TokenDisplayPart[] = []
     for (const token of wsi.tokens) {
-      const tokenWidth = PIXI.TextMetrics.measureText(token.jp, this.wordStyle).width
-      const hintText = new PIXI.Text(token.romaji, this.hintStyle)
-      hintText.x = hintOffset + tokenWidth/2
+      const tokenObj = new PIXI.Container()
+      tokenObj.position.x = lastTokenX
+      tokenObj.position.y = this.hintHeight
+
+      // Each token is composed of two pixi parts. doneText
+      // will become the green highlighted part that matches the romaji input
+      const remainingText = new PIXI.Text(token.jp, this.wordStyle)
+      const doneText = new PIXI.Text("", this.doneStyle)
+      tokenObj.addChild(remainingText)
+      tokenObj.addChild(doneText)
+
+      // Each token also has some hint text above it
+      const kanjiMode = !token.isKanaOnly
+
+      const hintObj = new PIXI.Container()
+      hintObj.alpha = 0.0
+  
+      const hintText = new PIXI.Text(kanjiMode ? token.kana : token.romaji, this.hintStyle)
+      hintText.x = remainingText.width/2
       hintText.anchor.x = 0.5
       hintObj.addChild(hintText)
-      hintOffset += tokenWidth
-    }
-    wordObj.addChild(hintObj)
 
+      const doneHintText = new PIXI.Text("", this.hintDoneStyle)
+      hintText.x = remainingText.width/2
+      hintText.anchor.x = 0.5
+      hintObj.addChild(doneHintText)
+
+      tokenParts.push({ token, tokenObj, remainingText, doneText, hintObj, hintText, doneHintText })
+      
+      lastTokenX += remainingText.width
+    }
 
     const romaji = wsi.tokens.map(t => t.romaji).join("")
     this.words.push({
@@ -294,9 +316,7 @@ export default class Game extends Vue {
       romaji: romaji,
       slot: slot,
       obj: wordObj,
-      doneText: doneText,
-      remainingText: remainingText,
-      hintObj: hintObj,
+      tokenParts: tokenParts,
       speed: 0.2 * (5 / romaji.length),
       alreadySpoken: false,
     })
@@ -331,7 +351,6 @@ export default class Game extends Vue {
     const step = 175
     const rate = minspeed + this.score / step
 
-
     // Drain score while using hints
     if (this.hintsActive) {
       this.floatScore -= deltaTime/30
@@ -348,24 +367,10 @@ export default class Game extends Vue {
         continue
       }
 
-      const { donePart, remainingPart } = this.matchAttemptTo(word.wsi)
-      word.doneText.text = donePart
-      word.remainingText.text = remainingPart
-      word.remainingText.x = donePart.length > 0 ? word.doneText.width : 0
-
-      if (remainingPart.length === 0 && !word.alreadySpoken) {
-        this.speak(word.wsi.jp)
-        word.alreadySpoken = true
-      }
-
       if (word.obj.x > this.width / 2) {
-        word.remainingText.style = this.warningStyle
-      }
-
-      if (this.hintsActive) {
-        word.hintObj.alpha = 1.0
-      } else {
-        word.hintObj.alpha = 0.0
+        for (const part of word.tokenParts) {
+          part.remainingText.style = this.warningStyle          
+        }
       }
     }
 
@@ -381,16 +386,64 @@ export default class Game extends Vue {
     }
   }
 
+  @Watch("attempt")
+  onAttemptChange() {
+    for (const word of this.words) {
+      const tokenCompletion = jputil.matchAttemptToTokens(this.attempt, word.wsi.tokens)
+      
+      for (let i = 0; i < tokenCompletion.length; i++) {
+        const tc = tokenCompletion[i]
+        const part = word.tokenParts[i]
+
+        if (part.token.isKanaOnly) {
+          part.doneText.text = tc.doneKana
+          part.remainingText.text = tc.remainingKana
+          part.remainingText.x = part.doneText.width
+        } else {
+          part.doneHintText.text = tc.doneKana
+          part.hintText.text = tc.remainingKana
+          part.hintText.x = part.doneHintText.width
+
+          if (tc.remainingKana.length === 0) {
+            part.doneText.text = part.token.jp
+            part.remainingText.text = ""
+          } else {
+            part.doneText.text = ""
+            part.remainingText.text = part.token.jp
+          }
+        }
+      }
+    }
+
+
+
+      // const { donePart, remainingPart } = this.matchAttemptTo(word.wsi)
+      // word.doneText.text = donePart
+      // word.remainingText.text = remainingPart
+      // word.remainingText.x = donePart.length > 0 ? word.doneText.width : 0
+
+      // if (remainingPart.length === 0 && !word.alreadySpoken) {
+      //   this.speak(word.wsi.jp)
+      //   word.alreadySpoken = true
+      // }
+      
+      // if (this.hintsActive) {
+      //   word.hintObj.alpha = 1.0
+      // } else {
+      //   word.hintObj.alpha = 0.0
+      // }
+  }
+
   removeWord(word: Word) {
     this.pixi.stage.removeChild(word.obj)
     this.words.splice(this.words.indexOf(word), 1)
   }
 
-  checkAttempt() {
+  submitAttempt() {
     const completedWords = []
 
     for (const word of this.words) {
-      if (this.matchAttemptTo(word.wsi).remainingPart.length === 0) {
+      if (this.matchAttemptTo(word.wsi).doneKana.length === 0) {
         completedWords.push(word)
       }
     }
