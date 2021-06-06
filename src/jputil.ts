@@ -40,7 +40,7 @@ export function toHiragana(romaji: string): string {
   const bits = []
 
   const beforeModifiers = ["ッ", "っ"]
-  const afterModifiers = ["ー", "ャ", "ョ", "ュ", "ェ", "ゃ", "ょ", "ゅ", "ぇ", "ィ", "ァ"]
+  const afterModifiers = ["ー", "ャ", "ョ", "ュ", "ェ", "ゃ", "ょ", "ゅ", "ぇ", "ィ", "ァ", "ォ"]
 
   for (let i = 0; i < jp.length; i++) {
     let j = i

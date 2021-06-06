@@ -10,6 +10,7 @@ describe('jputil', () => {
 
     expect(toRomaji("スナバァ")).toEqual("sunaba")
     expect(toRomaji("ゴールデンウィーク")).toEqual("goorudenwiiku")
+    // リフォーム
     // expect(toKatakana("kyacchikopii")).toEqual("キャッチコピー")
     // expect(toRomaji("キャッチコピー")).toEqual("kyacchikopii")
     // expect(toHiragana("キャッチコピー")).toEqual("キャッチこぴい")
