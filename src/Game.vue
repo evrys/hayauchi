@@ -281,6 +281,7 @@ export default class Game extends Vue {
       const tokenObj = new PIXI.Container()
       tokenObj.position.x = lastTokenX
       tokenObj.position.y = this.hintHeight
+      wordObj.addChild(tokenObj)
 
       // Each token is composed of two pixi parts. doneText
       // will become the green highlighted part that matches the romaji input
