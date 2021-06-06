@@ -1,4 +1,4 @@
-import { toRomaji, phoneticKanaSplit, toKatakana, matchAttempt, toHiragana } from '../src/jputil'
+import { toRomaji, phoneticKanaSplit, alignKanjiReading, toKatakana, matchAttempt, toHiragana, splitKanaBoundaries } from '../src/jputil'
 
 
 describe('jputil', () => {
@@ -24,27 +24,52 @@ describe('jputil', () => {
     expect(phoneticKanaSplit("ゴールデンウィーク")).toEqual(["ゴー", "ル", "デ", "ン", "ウィー", "ク"])
   })
 
-  it('progressively and permissively matches romaji input to kana', async () => {
-    expect(matchAttempt("pa", "パー").donePart).toEqual("パ")
-    expect(matchAttempt("pa", "パー").remainingPart).toEqual("ー")
-    expect(matchAttempt("paa", "パー").donePart).toEqual("パー")
-    expect(matchAttempt("paa", "パー").remainingPart).toEqual("")
+  it('aligns kanji-containing vocab parts with their readings', async () => {
+    expect(splitKanaBoundaries("お兄さん")).toEqual(["お", "兄", "さん"])
+    expect(splitKanaBoundaries("可愛い")).toEqual(["可愛", "い"])
 
 
-    expect(matchAttempt("chiariidi", "チアリーディング").donePart).toEqual("チアリーディ")
+    expect(alignKanjiReading("お兄さん", "おにいさん")).toEqual([
+      ['お', 'お'],
+      ['兄', 'にい'],
+      ['さん', 'さん']
+    ])
 
-    expect(matchAttempt("ky", "キャッチコピー").donePart).toEqual("")
-    expect(matchAttempt("kya", "キャッチコピー").donePart).toEqual("キャ")
-    expect(matchAttempt("kyac", "キャッチコピー").donePart).toEqual("キャ")
-    expect(matchAttempt("kyacc", "キャッチコピー").donePart).toEqual("キャ")
-    expect(matchAttempt("kyacch", "キャッチコピー").donePart).toEqual("キャ")
-    expect(matchAttempt("kyacchi", "キャッチコピー").donePart).toEqual("キャッチ")
-    expect(matchAttempt("kyacchik", "キャッチコピー").donePart).toEqual("キャッチ")
-    expect(matchAttempt("kyacchiko", "キャッチコピー").donePart).toEqual("キャッチコ")
-    expect(matchAttempt("kyacchikop", "キャッチコピー").donePart).toEqual("キャッチコ")
-    expect(matchAttempt("kyacchikopi", "キャッチコピー").donePart).toEqual("キャッチコピ")
-    expect(matchAttempt("kyacchikopii", "キャッチコピー").donePart).toEqual("キャッチコピー")
+    expect(alignKanjiReading("可愛い", "かわいい")).toEqual([
+      ['可愛', 'かわい'],
+      ['い', 'い']
+    ])
+  })
+
+  // it('progressively and permissively matches romaji input to kana', async () => {
+  //   // naraberu
+  //   expect(matchAttempt("na", "並べる", "ならべる")).toEqual({
+  //     doneKanji: "",
+  //     doneKana: "な",
+  //     remainingKanji: "並べる",
+  //     remainingKana: "ならべる"
+  //   })
+
+  //   expect(matchAttempt("pa", "パー").doneKanji).toEqual("パ")
+  //   expect(matchAttempt("pa", "パー").remainingKanji).toEqual("ー")
+  //   expect(matchAttempt("paa", "パー").doneKanji).toEqual("パー")
+  //   expect(matchAttempt("paa", "パー").remainingKanji).toEqual("")
+
+
+  //   expect(matchAttempt("chiariidi", "チアリーディング").doneKanji).toEqual("チアリーディ")
+
+  //   expect(matchAttempt("ky", "キャッチコピー").doneKanji).toEqual("")
+  //   expect(matchAttempt("kya", "キャッチコピー").doneKanji).toEqual("キャ")
+  //   expect(matchAttempt("kyac", "キャッチコピー").doneKanji).toEqual("キャ")
+  //   expect(matchAttempt("kyacc", "キャッチコピー").doneKanji).toEqual("キャ")
+  //   expect(matchAttempt("kyacch", "キャッチコピー").doneKanji).toEqual("キャ")
+  //   expect(matchAttempt("kyacchi", "キャッチコピー").doneKanji).toEqual("キャッチ")
+  //   expect(matchAttempt("kyacchik", "キャッチコピー").doneKanji).toEqual("キャッチ")
+  //   expect(matchAttempt("kyacchiko", "キャッチコピー").doneKanji).toEqual("キャッチコ")
+  //   expect(matchAttempt("kyacchikop", "キャッチコピー").doneKanji).toEqual("キャッチコ")
+  //   expect(matchAttempt("kyacchikopi", "キャッチコピー").doneKanji).toEqual("キャッチコピ")
+  //   expect(matchAttempt("kyacchikopii", "キャッチコピー").doneKanji).toEqual("キャッチコピー")
 
     
-  })
+  // })
 })
