@@ -39,10 +39,11 @@ export function getN5KanjiVocab(): WordsetItem[] {
     tokens: [{ jp: r[0], romaji: r[1] }]
   }))
 }
+
 // @ts-ignore
-import n5hiraganaRows from '../data/JLPT5_Hiragana.tsv'
+import n5HiraganaRows from '../data/JLPT5_Hiragana.tsv'
 export function getN5HiraganaVocab(): WordsetItem[] {
-  const rows = n5hiraganaRows as [string, string, string][]
+  const rows = n5HiraganaRows as [string, string][]
   return rows.map(r => ({
     jp: r[0],
     en: r[1],
