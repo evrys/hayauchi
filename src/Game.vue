@@ -154,7 +154,8 @@ export default class Game extends Vue {
 
     if (this.options.pokemon) this.wordset.push(...wordsets.getPokenames())
     if (this.options.loanwords) this.wordset.push(...wordsets.getLoanwords())
-    if (this.options.n5) this.wordset.push(...wordsets.getN5Vocab())
+    if (this.options.n5Kanji) this.wordset.push(...wordsets.getN5KanjiVocab())
+    if (this.options.n5Hiragana) this.wordset.push(...wordsets.getN5HiraganaVocab())
 
     this.wordset = _.shuffle(this.wordset)
     // this.wordset = _.reverse(_.uniqBy(this.wordset, (w) => w[0]))

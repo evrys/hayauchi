@@ -30,12 +30,22 @@ export function getPokenames(): WordsetItem[] {
 }
 
 // @ts-ignore
-import n5Rows from '../data/JLPT5_Kanji.tsv'
-export function getN5Vocab(): WordsetItem[] {
-  const rows = n5Rows as [string, string, string][]
+import n5KanjiRows from '../data/JLPT5_Kanji.tsv'
+export function getN5KanjiVocab(): WordsetItem[] {
+  const rows = n5KanjiRows as [string, string, string][]
   return rows.map(r => ({
     jp: r[0],
     en: r[2],
     tokens: [{ jp: r[0], romaji: r[1] }]
+  }))
+}
+// @ts-ignore
+import n5hiraganaRows from '../data/JLPT5_Hiragana.tsv'
+export function getN5HiraganaVocab(): WordsetItem[] {
+  const rows = n5hiraganaRows as [string, string, string][]
+  return rows.map(r => ({
+    jp: r[0],
+    en: r[1],
+    tokens: tokenize(r[0])
   }))
 }

@@ -39,15 +39,21 @@
 
       <section>
         <h6>Hiragana</h6>
-        <div><em>Coming soon...</em></div>
+        
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="n5Hiragana" v-model="options.n5Hiragana">
+          <label class="form-check-label" for="n5Hiragana">
+            JLPT N5 Vocab
+          </label>
+        </div>
       </section>
 
       <section>
         <h6>Kanji</h6>
 
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="n5" v-model="options.n5">
-          <label class="form-check-label" for="n5">
+          <input class="form-check-input" type="checkbox" id="n5Kanji" v-model="options.n5Kanji">
+          <label class="form-check-label" for="n5Kanji">
             JLPT N5 Vocab
           </label>
         </div>
@@ -161,7 +167,7 @@ export default class App extends Vue {
   }
 
   get canStart() {
-    return this.options.pokemon || this.options.loanwords || this.options.n5
+    return this.options.pokemon || this.options.loanwords || this.options.n5Kanji || this.options.n5Hiragana
   }
 
   startGame() {
@@ -173,7 +179,8 @@ export default class App extends Vue {
     return {
       loanwords: true,
       pokemon: false,
-      n5: false,
+      n5Kanji: false,
+      n5Hiragana: false,
       voice: this.defaultVoiceName
     }
   }
