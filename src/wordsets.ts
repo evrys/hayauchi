@@ -1,5 +1,5 @@
 
-import { kanaOnly, PhoneticToken, tokenize } from './jputil'
+import { containsKanji, containsKatakana, kanaOnly, PhoneticToken, tokenize } from './jputil'
 
 export type WordsetItem = {
   jp: string
@@ -50,3 +50,19 @@ export function getN5HiraganaVocab(): WordsetItem[] {
     tokens: tokenize(r[0])
   }))
 }
+
+// // @ts-ignore
+// import jlptrows from '../data/JLPT5_Vocab.tsv'
+// export function getJLPTVocab() {
+//   const rows = jlptrows.slice(1) as [string, string]
+
+//   const output = []
+//   for (const row of rows) {
+//     const [kanji, furigana, romaji, meaning] = row
+//     if (containsKanji(kanji) && !kanji.includes("〜")) {
+//       output.push([kanji, furigana, romaji, meaning])
+//     }
+//   }
+
+//   return output.map(r => r.join("\t")).join("\n")
+// }

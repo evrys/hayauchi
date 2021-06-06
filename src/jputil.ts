@@ -30,6 +30,18 @@ export function toHiragana(romaji: string): string {
   return hepburn.toHiragana(romaji.toUpperCase())
 }
 
+export function containsKanji(s: string): boolean {
+  return hepburn.containsKanji(s)
+}
+
+export function containsKatakana(s: string): boolean {
+  return hepburn.containsKatakana(s)
+}
+
+export function containsHiragana(s: string): boolean {
+  return hepburn.containsHiragana(s)
+}
+
 /**
  * Break some kana-only text into the smallest possible atoms
  * that are phonetically independent

@@ -37,7 +37,9 @@ import { WordsetItem } from "./wordsets"
 import { matchAttempt } from "./jputil"
 import * as jputil from './jputil'
 
-;(window as any).jputil = jputil // For debugging
+// For debugging
+;(window as any).jputil = jputil
+;(window as any).wordsets = wordsets
 
 
 type Word = {
