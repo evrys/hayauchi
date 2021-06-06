@@ -5,12 +5,12 @@ import hepburn from 'hepburn'
 const HIRAGANA = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわゐゑをんがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽぁぃぅぇぉ"
 const KATAKANA = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヰヱヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポァィゥェォーャョュェッっゃょゅぇ"
 const KANA = HIRAGANA + KATAKANA
-const nonKanaRegex = new RegExp(`[^${HIRAGANA}${KATAKANA}]`)
 
+const NON_KANA_REGEX = new RegExp(`[^${KANA}]`, 'g')
 export function kanaOnly(s: string): string {
   s = s.replaceAll(/～/g, "ー")
 
-  return s.replaceAll(nonKanaRegex, "")
+  return s.replaceAll(NON_KANA_REGEX, "")
 }
 
 export type PhoneticToken = {
@@ -158,79 +158,34 @@ export function alignKanjiReading(jp: string, kana: string) {
   return readings
 }
 
-export function matchAttempt(attempt: string, kanji: string, kana?: string) {
-  if (!kana) {
-    kana = kanji
-  }
-
+export function matchAttempt(attempt: string, kana: string) {
   const expectedRomaji = toRomaji(kana)
+  let donePart = ""
+  let remainingPart = kana
 
-  let prevRomajiBit = ""
-  let kanaIndex = 0
-  let kanjiSlice = 0
-  let bestKanaSlice = 0
-  let bestKanjiSlice = 0
-  while (kanaIndex < kana.length) {
-    const kanaBit = kana.slice(0, kanaIndex+1)
-    const romajiBit = toRomaji(kanaBit)
-
-    // This check ensures we don't cut a misleading match in the middle of a phonetic atom
-    // e.g. ki shouldn't match any of キャ
-    const isAtomic = expectedRomaji.startsWith(romajiBit)
-     
-    // This check ensures we don't match kya to all of キャッ
-    const isComplete = romajiBit !== prevRomajiBit || kanaIndex === kana.length-1
-
-    if (isAtomic && isComplete) {
-      const attemptBit = attempt.slice(0, romajiBit.length)
-      if (romajiBit === attemptBit || toHiragana(romajiBit) === toHiragana(attemptBit)) {
-        bestKanaSlice = kanaIndex+1
-        bestKanjiSlice = kanjiSlice
-      }
+  let prevBitRomaji = ""
+  for (let i = 0; i < kana.length; i++) {
+    const bit = kana.slice(0, i+1)
+    const bitRomaji = toRomaji(bit)
+    if (!expectedRomaji.startsWith(bitRomaji)) {
+      // Matching here would be misleading
+      // e.g. ki shouldn't match any of キャ
+      continue
     }
 
-    kanaIndex += 1
-    prevRomajiBit = romajiBit
-    for (let i = kanjiSlice; i < kanji.length; i++) {
-      if (kana[kanaIndex] === kanji[i]) {
-        // kanjiIndex = i
-        break
-      } else if (containsKana(kanji[i])) {
-        break
-      }
+    if (i < kana.length-1 && bitRomaji === prevBitRomaji) {
+      // Avoid matching kya to all of キャッ
+      continue
     }
+
+    const attemptBit = attempt.slice(0, bitRomaji.length)
+    if (bitRomaji === attemptBit || toHiragana(bitRomaji) === toHiragana(attemptBit)) {
+      donePart = bit
+      remainingPart = kana.slice(i+1)
+    }
+
+    prevBitRomaji = bitRomaji
   }
 
-  const doneKana = kana.slice(0, bestKanaSlice)
-  const doneKanji = kanji.slice(0, bestKanjiSlice)
-  const remainingKana = kana.slice(bestKanaSlice)
-  const remainingKanji = kanji.slice(bestKanjiSlice)
-
-  return { doneKana, doneKanji, remainingKana, remainingKanji }
-
-  // let prevBitRomaji = ""
-  // for (let i = 0; i < kana.length; i++) {
-  //   const bit = kana.slice(0, i+1)
-  //   const bitRomaji = toRomaji(bit)
-  //   if (!expectedRomaji.startsWith(bitRomaji)) {
-  //     // Matching here would be misleading
-  //     // e.g. ki shouldn't match any of キャ
-  //     continue
-  //   }
-
-  //   if (i < kana.length-1 && bitRomaji.length <= prevBitRomaji.length) {
-  //     // Avoid matching kya to all of キャッ
-  //     continue
-  //   }
-
-  //   const attemptBit = attempt.slice(0, bitRomaji.length)
-  //   if (bitRomaji === attemptBit || toHiragana(bitRomaji) === toHiragana(attemptBit)) {
-  //     donePart = bit
-  //     remainingPart = kana.slice(i+1)
-  //   }
-
-  //   prevBitRomaji = bitRomaji
-  // }
-
-  // return { donePart, remainingPart }
+  return { donePart, remainingPart }
 }
