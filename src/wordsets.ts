@@ -1,9 +1,9 @@
 
-import { containsKanji, containsKatakana, kanaOnly, PhoneticToken, toKatakana, tokenize, toRomaji } from './jputil'
+import { containsKanji, containsKatakana, kanaOnly, PhoneticToken, toKatakana, tokenizeKana, toRomaji } from './jputil'
 
 export type WordsetItem = {
   jp: string
-  reading?: string
+  kana?: string
   en: string
   tokens: PhoneticToken[]
 }
@@ -13,9 +13,9 @@ import loanwordRows from '../data/loanwords.tsv'
 export function getLoanwords(): WordsetItem[] {
   const rows = loanwordRows as [string, string]
   return rows.map(r => ({
-    jp: kanaOnly(r[0]),
+    jp: r[0],
     en: r[1],
-    tokens: tokenize(kanaOnly(r[0]))
+    tokens: tokenizeKana(r[0])
   }))
 }
 
@@ -24,9 +24,9 @@ import pokenameRows from '../data/pokenames'
 export function getPokenames(): WordsetItem[] {
   const rows = pokenameRows as [string, string][]
   return rows.map(r => ({
-    jp: kanaOnly(r[0]),
+    jp: r[0],
     en: r[1],
-    tokens: tokenize(kanaOnly(r[0]))
+    tokens: tokenizeKana(r[0])
   }))
 }
 
@@ -37,12 +37,12 @@ export function getN5HiraganaVocab(): WordsetItem[] {
   return rows.map(r => ({
     jp: r[0],
     en: r[1],
-    tokens: tokenize(r[0])
+    tokens: tokenizeKana(r[0])
   }))
 }
 
 // @ts-ignore
-import n5KanjiRows from '../data/alignment_test.tsv'
+import n5KanjiRows from '../data/JLPT5_Alignment.tsv'
 export function getN5KanjiVocab(): WordsetItem[] {
   const rows = n5KanjiRows as [string, string, string, string][]
   return rows.slice(1).map(r => {

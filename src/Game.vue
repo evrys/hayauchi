@@ -38,7 +38,8 @@ import { matchAttempt } from "./jputil"
 import * as jputil from './jputil'
 
 // For debugging
-;(window as any).jputil = jputil
+;import { containsKanji } from "hepburn"
+(window as any).jputil = jputil
 ;(window as any).wordsets = wordsets
 
 
@@ -275,39 +276,41 @@ export default class Game extends Vue {
     wordObj.scale.y = this.wordScale
     this.pixi.stage.addChild(wordObj)
 
+    const kanjiMode = containsKanji(wsi.jp)
+
     let lastTokenX = 0
     const tokenParts: TokenDisplayPart[] = []
     for (const token of wsi.tokens) {
       const tokenObj = new PIXI.Container()
       tokenObj.position.x = lastTokenX
-      tokenObj.position.y = this.hintHeight
       wordObj.addChild(tokenObj)
 
       // Each token is composed of two pixi parts. doneText
       // will become the green highlighted part that matches the romaji input
       const remainingText = new PIXI.Text(token.jp, this.wordStyle)
       const doneText = new PIXI.Text("", this.doneStyle)
+      doneText.position.y = this.hintHeight
+      remainingText.position.y = this.hintHeight
       tokenObj.addChild(remainingText)
       tokenObj.addChild(doneText)
 
-      // Each token also has some hint text above it
-      const kanjiMode = !token.isKanaOnly
-
+      // Each token also has some hint text above it.
+      // In kanji mode this is furigana-style reading kana; in kana mode it's romaji
       const hintObj = new PIXI.Container()
-      hintObj.alpha = 0.0
+      tokenObj.addChild(hintObj)
   
       const hintText = new PIXI.Text(kanjiMode ? token.kana : token.romaji, this.hintStyle)
-      hintText.x = remainingText.width/2
-      hintText.anchor.x = 0.5
+      hintText.alpha = 0.0
       hintObj.addChild(hintText)
 
+      // Only used in kanji mode
       const doneHintText = new PIXI.Text("", this.hintDoneStyle)
-      hintText.x = remainingText.width/2
-      hintText.anchor.x = 0.5
       hintObj.addChild(doneHintText)
+      
+      // Center the hint text
+      hintObj.x = remainingText.width/2 - hintText.width/2
 
       tokenParts.push({ token, tokenObj, remainingText, doneText, hintObj, hintText, doneHintText })
-      
       lastTokenX += remainingText.width
     }
 
@@ -368,10 +371,16 @@ export default class Game extends Vue {
         continue
       }
 
+      // Change to warning color for words which are nearing a miss
       if (word.obj.x > this.width / 2) {
         for (const part of word.tokenParts) {
           part.remainingText.style = this.warningStyle          
         }
+      }
+
+      // Update hint visibility if needed      
+      for (const part of word.tokenParts) {
+        part.hintText.alpha = this.hintsActive ? 1.0 : 0.0
       }
     }
 
@@ -399,11 +408,11 @@ export default class Game extends Vue {
         if (part.token.isKanaOnly) {
           part.doneText.text = tc.doneKana
           part.remainingText.text = tc.remainingKana
-          part.remainingText.x = part.doneText.width
+          part.remainingText.x = tc.doneKana.length ? part.doneText.width : 0
         } else {
           part.doneHintText.text = tc.doneKana
           part.hintText.text = tc.remainingKana
-          part.hintText.x = part.doneHintText.width
+          part.hintText.x = tc.doneKana.length ? part.doneHintText.width : 0
 
           if (tc.remainingKana.length === 0) {
             part.doneText.text = part.token.jp
@@ -414,6 +423,12 @@ export default class Game extends Vue {
           }
         }
       }
+
+      // Speak word as soon as the player has the right input for it
+      if (!word.alreadySpoken && tokenCompletion[tokenCompletion.length-1].remainingKana === "") {
+        this.speak(word.wsi.kana||word.wsi.jp)
+        word.alreadySpoken = true
+      }
     }
 
 
@@ -422,17 +437,6 @@ export default class Game extends Vue {
       // word.doneText.text = donePart
       // word.remainingText.text = remainingPart
       // word.remainingText.x = donePart.length > 0 ? word.doneText.width : 0
-
-      // if (remainingPart.length === 0 && !word.alreadySpoken) {
-      //   this.speak(word.wsi.jp)
-      //   word.alreadySpoken = true
-      // }
-      
-      // if (this.hintsActive) {
-      //   word.hintObj.alpha = 1.0
-      // } else {
-      //   word.hintObj.alpha = 0.0
-      // }
   }
 
   removeWord(word: Word) {
@@ -444,7 +448,7 @@ export default class Game extends Vue {
     const completedWords = []
 
     for (const word of this.words) {
-      if (this.matchAttemptTo(word.wsi).doneKana.length === 0) {
+      if (matchAttempt(this.attempt, word.wsi.kana||word.wsi.jp).remainingKana.length === 0) {
         completedWords.push(word)
       }
     }

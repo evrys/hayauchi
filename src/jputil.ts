@@ -84,27 +84,19 @@ export function phoneticKanaSplit(jp: string): string[] {
   return bits
 }
 
-/**
- * Given a Japanese word and its kana reading, break it into
- * the smallest independent phonetic atoms
- * 
- * e.g. 
- */
-export function phoneticTokenize(jp: string, furigana: string) {
-
-}
 
 /**
- * Break a Japanese word into the smallest possible atoms
+ * Break a kana-only word into the smallest possible atoms
  * that can be independently transliterated to romaji
  * 
  * e.g. チャージ => ["チャー", "ジ"]
- * TODO kanji handling
  */
-export function tokenize(jp: string): any[] {
-  return phoneticKanaSplit(jp).map(jp => ({
-    jp,
-    romaji: toRomaji(jp)
+export function tokenizeKana(jp: string): PhoneticToken[] {
+  return phoneticKanaSplit(kanaOnly(jp)).map(kana => ({
+    jp: kana,
+    kana: kana,
+    romaji: toRomaji(kana),
+    isKanaOnly: true
   }))
 }
 
@@ -116,48 +108,6 @@ const KANA_BOUNDARY = new RegExp(`(?<=[${KANA}])(?=[^${KANA}])|(?<=[^${KANA}])(?
  */
 export function splitKanaBoundaries(jp: string): string[] {
   return jp.split(KANA_BOUNDARY)
-}
-
-/**
- * Given some jp text and a pure kana reading of that text, align the elements
- * of the text to their corresponding reading
- * 
- * e.g. 
- * 可愛い, かわいい => [["可愛", "かわい"], ["い", "い"]]
- * お兄さん, おにいさん => [["お", "お"], ["兄", "兄"], ["さん", "さん"]]
- * 
- * This is only heuristic; to do an ideal job here would require a 
- * proper sequence alignment algorithm.
- */
-export function alignKanjiReading(jp: string, kana: string) {
-  const spl = splitKanaBoundaries(jp)
-  const readings: [string, string][] = []
-
-  let kanaIndex = 0
-  for (let i = 0; i < spl.length; i++) {
-    const bit = spl[i]
-    const nextBit = spl[i + 1]
-    const isKanaBit = containsKana(bit)
-
-    let reading = ""
-    for (let j = kanaIndex; j < kana.length; j++) {
-      if (reading.length >= bit.length) {
-        if (isKanaBit) {
-          kanaIndex = j
-          break
-        } else if (nextBit && nextBit[0] === kana[j]) {
-          kanaIndex = j
-          break
-        }
-      }
-
-      reading += kana[j]
-    }
-    readings.push([bit, reading])
-  }
-
-  console.log(readings)
-  return readings
 }
 
 export type TokenCompletion = {
@@ -176,18 +126,20 @@ export function matchAttemptToTokens(attempt: string, tokens: PhoneticToken[]): 
     }
   })
 
-  let tokenKanaIndex = 0
+  let kanaIndex = 0
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i]
     const completion = tokenCompletion[i]
-    if (tokenKanaIndex + token.kana.length <= doneKana.length) {
+    if (kanaIndex + token.kana.length <= doneKana.length) {
       // Fully completed this token
       completion.doneKana = token.kana
       completion.remainingKana = ""
     } else {
-      
+      completion.doneKana = token.kana.slice(0, doneKana.length-kanaIndex)
+      completion.remainingKana = token.kana.slice(doneKana.length-kanaIndex)
       break
     }
+    kanaIndex += token.kana.length
   }
 
   return tokenCompletion
