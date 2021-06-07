@@ -13,7 +13,6 @@
           ref="attemptInput"
           v-model="attempt"
           autofocus
-          :disabled="hintsActive"
         />
       </form>
       <ul class="stats d-flex ms-auto">
