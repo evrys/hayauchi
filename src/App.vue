@@ -1,90 +1,118 @@
 <template>
   <main v-if="!gameStarted">
     <h1>Kanaspeed</h1>
-
-    <div class="settings">
-      <!-- <section class="kanatypeSetting">
-        <h6>Include words with</h6>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" value="" id="hiragana" v-model="options.hiragana">
-          <label class="form-check-label" for="hiragana">
-            Hiragana
-          </label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" value="" id="katakana" v-model="options.katakana">
-          <label class="form-check-label" for="katakana">
-            Katakana
-          </label>
-        </div>
-      </section> -->
-
-      <section class="wordsetSetting">
-        <h6>Katakana</h6>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="loanwords" v-model="options.loanwords">
-          <label class="form-check-label" for="loanwords">
-            Loanwords
-          </label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="pokemon" v-model="options.pokemon">
-          <label class="form-check-label" for="pokemon">
-            Pokémon Names
-          </label>
-        </div>
-
-
-      </section>
-
-      <section>
+    <div class="d-flex">
+      <div class="wordsets">
         <h6>Hiragana</h6>
-        
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="n5Hiragana" v-model="options.n5Hiragana">
-          <label class="form-check-label" for="n5Hiragana">
-            Common Words
-          </label>
-        </div>
-      </section>
+        <ul>
+          <li
+            v-for="wordset in hiraganaWordsets"
+            :class="{ selected: selectedWordset == wordset }"
+            :key="wordset.id"
+            @click="startGameWith(wordset)"
+          >
+            {{ wordset.name }}
+          </li>
+        </ul>
 
-      <section>
+        <h6>Katakana</h6>
+        <ul>
+          <li
+            v-for="wordset in katakanaWordsets"
+            :class="{ selected: selectedWordset == wordset }"
+            :key="wordset.id"
+            @click="startGameWith(wordset)"
+          >
+            {{ wordset.name }}
+          </li>
+        </ul>
+
         <h6>Kanji</h6>
-
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="n5Kanji" v-model="options.n5Kanji">
-          <label class="form-check-label" for="n5Kanji">
-            JLPT N5 Vocab
-          </label>
-        </div>
-      </section>
-
-      <section class="voiceSetting" v-if="voiceOptions.length > 0">
-        <h6>Voice Synth</h6>
-        <div class="form-check">
-          <input class="form-check-input" type="radio" id="novoice" :value="null" v-model="options.voice">
-          <label class="form-check-label" for="novoice">
-            No voice
-          </label>
-        </div>
-        <div class="form-check" v-for="voice in voiceOptions" :key="voice.name">
-          <input class="form-check-input" type="radio" :id="voice.name" :value="voice.name" v-model="options.voice">
-          <label class="form-check-label" :for="voice.name">
-            {{voice.name}}
-          </label>
-        </div>
-      </section>
+        <ul>
+          <li
+            v-for="wordset in kanjiWordsets"
+            :class="{ selected: selectedWordset == wordset }"
+            :key="wordset.id"
+            @click="startGameWith(wordset)"
+          >
+            {{ wordset.name }}
+          </li>
+        </ul>
+        <p>Use up/down/enter to choose a wordset.<br /></p>
+      </div>
+      <div class="right intro" v-if="page === 'intro'">
+        <p>Practice your Japanese reading speed!</p>
+        <p>
+          A game ends after 10 missed words.<br />
+          Type as many as you can to get a high score.
+        </p>
+        <footer>
+          <button class="btn" @click="page = 'about'">About</button>
+          <button class="btn" @click="page = 'settings'">Settings</button>
+        </footer>
+      </div>
+      <div class="right settings" v-else-if="page === 'settings'">
+        <section class="voiceSetting" v-if="voiceOptions.length > 0">
+          <h6>Voice Synth</h6>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              id="novoice"
+              :value="null"
+              v-model="options.voice"
+            />
+            <label class="form-check-label" for="novoice"> No voice </label>
+          </div>
+          <div
+            class="form-check"
+            v-for="voice in voiceOptions"
+            :key="voice.name"
+          >
+            <input
+              class="form-check-input"
+              type="radio"
+              :id="voice.name"
+              :value="voice.name"
+              v-model="options.voice"
+            />
+            <label class="form-check-label" :for="voice.name">
+              {{ voice.name }}
+            </label>
+          </div>
+        </section>
+        <footer>
+          <button class="btn" @click="page = 'intro'">Back</button>
+        </footer>
+      </div>
+      <div class="right about" v-else-if="page === 'about'">
+        <p>We made this little game because we kept mixing up katakana and wanted a fun way to practice.</p>
+        <p>Kanaspeed is based on the classic Linux terminal game <a href="http://typespeed.sourceforge.net/">typespeed</a>.</p>
+        <p>The wordsets come from <a href="https://en.wikipedia.org/wiki/List_of_gairaigo_and_wasei-eigo_terms">Wikipedia</a>, <a href="https://nihongoichiban.com/2011/04/30/complete-list-of-vocabulary-for-the-jlpt-n5/">Nihongo Ichiban</a>, and the <a href="https://www.npmjs.com/package/pokemon">Pokémon npm package</a>. 
+        <p>Created by <a href="https://github.com/mispy">Mispy</a> &amp; <a href="https://github.com/two-kay">Twokay</a></p>
+        <a href="https://github.com/mispy/kanaspeed">https://github.com/mispy/kanaspeed</a>
+        <footer>
+          <button class="btn" @click="page = 'intro'">Back</button>
+        </footer>
+      </div>
     </div>
-
-    <p>The game ends after 10 missed words.<br/> Type as many as you can to get the highest score!</p>
-    <button class="btn btn-primary" @click.prevent="startGame" :disabled="!canStart">Start</button>
   </main>
-  <Game v-else :options="options" :onlinePlayer="onlinePlayer" @exit="gameStarted = false"/>
+  <Game
+    v-else
+    :options="options"
+    :onlinePlayer="onlinePlayer"
+    @exit="gameStarted = false"
+  />
 </template>
 
 <script lang="ts">
-import { initializeApp } from 'firebase/app'
-import { browserLocalPersistence, getAuth, setPersistence, signInAnonymously } from "firebase/auth"
+import { initializeApp } from "firebase/app"
+import {
+  browserLocalPersistence,
+  getAuth,
+  setPersistence,
+  signInAnonymously,
+} from "firebase/auth"
 
 // Initialize Firebase
 initializeApp({
@@ -94,14 +122,15 @@ initializeApp({
   storageBucket: "kanaspeed-ae459.appspot.com",
   messagingSenderId: "898305225736",
   appId: "1:898305225736:web:c99ce6922e4c5fde214dbd",
-  measurementId: "G-B644ZEG6EQ"
+  measurementId: "G-B644ZEG6EQ",
 })
 
-import { Component, Vue } from "vue-property-decorator"
+import { Component, Vue, Watch } from "vue-property-decorator"
 import _ from "lodash"
 import Game from "./Game.vue"
 import type { GameOptions, OnlinePlayer, ServerScoreData } from "./types"
-import { doc, getDoc, getFirestore } from 'firebase/firestore'
+import { doc, getDoc, getFirestore } from "firebase/firestore"
+import { WordsetDescriptor, wordsets } from "./wordsets"
 
 @Component({
   components: {
@@ -111,24 +140,38 @@ import { doc, getDoc, getFirestore } from 'firebase/firestore'
 export default class App extends Vue {
   gameStarted: boolean = false
   browserVoices: SpeechSynthesisVoice[] = []
+  onlinePlayer: OnlinePlayer | null = null
+  page: "intro" | "about" | "settings" = "intro"
+
   options: GameOptions = this.defaultGameOptions
-  onlinePlayer: OnlinePlayer|null = null
+  prevOptions: any = {}
 
   async created() {
     this.keydown = this.keydown.bind(this)
     window.addEventListener("keydown", this.keydown)
 
+    // Load previous options, if saved
+    try {
+      this.prevOptions = JSON.parse(localStorage.getItem("options") as string)
+      for (const key in this.prevOptions) {
+        if (key in this.options) {
+          ;(this.options as any)[key] = this.prevOptions[key]
+        }
+      }
+    } catch (err) {}
+
     // Sometimes browser takes a while to populate options
     speechSynthesis.addEventListener("voiceschanged", () => {
       this.browserVoices = speechSynthesis.getVoices()
-      this.options.voice = this.defaultVoiceName
+      if (!this.prevOptions.voice)
+        this.options.voice = this.defaultVoiceName
     })
     this.browserVoices = speechSynthesis.getVoices()
 
     // This auth will be used for the leaderboard later, let's sign in now
     const auth = getAuth()
 
-    auth.onAuthStateChanged(user => {
+    auth.onAuthStateChanged((user) => {
       if (user) {
         this.fetchPlayerData(user.uid)
       }
@@ -138,13 +181,40 @@ export default class App extends Vue {
     signInAnonymously(auth)
   }
 
+  get jsonOptions() {
+    return JSON.stringify(this.options)
+  }
+
+  @Watch("jsonOptions")
+  saveOptions() {
+    localStorage.setItem("options", this.jsonOptions)
+  }
+
+  get selectedWordset() {
+    return wordsets[this.options.wordsetIndex]
+  }
+
+  get hiraganaWordsets() {
+    return wordsets.filter((w) => w.type === "hiragana")
+  }
+
+  get katakanaWordsets() {
+    return wordsets.filter((w) => w.type === "katakana")
+  }
+
+  get kanjiWordsets() {
+    return wordsets.filter((w) => w.type === "kanji")
+  }
+
   async fetchPlayerData(userId: string) {
     const db = getFirestore()
-    const prevScoreData = (await getDoc(doc(db, "scores", userId))).data() as ServerScoreData|null
-   
+    const prevScoreData = (
+      await getDoc(doc(db, "scores", userId))
+    ).data() as ServerScoreData | null
+
     this.onlinePlayer = {
       userId: userId,
-      prevScoreData: prevScoreData
+      prevScoreData: prevScoreData,
     }
   }
 
@@ -153,11 +223,28 @@ export default class App extends Vue {
   }
 
   get voiceOptions() {
-    return _.sortBy(this.browserVoices.filter(v => v.lang === "ja-JP"), v => v.name.startsWith("Google") ? -1 : 0)
+    return _.sortBy(
+      this.browserVoices.filter((v) => v.lang === "ja-JP"),
+      (v) => (v.name.startsWith("Google") ? -1 : 0)
+    )
   }
 
   keydown(ev: KeyboardEvent) {
-    if (ev.key === "Enter" && !this.gameStarted) {
+    if (this.gameStarted) return
+
+    if (ev.key === "ArrowDown" || ev.key === "s") {
+      this.options.wordsetIndex += 1
+      if (this.options.wordsetIndex >= wordsets.length) {
+        this.options.wordsetIndex = 0
+      }
+    } else if (ev.key === "ArrowUp" || ev.key === "w") {
+      this.options.wordsetIndex -= 1
+      if (this.options.wordsetIndex < 0) {
+        this.options.wordsetIndex = wordsets.length - 1
+      }
+    }
+
+    if (ev.key === "Enter") {
       this.startGame()
     }
   }
@@ -166,26 +253,23 @@ export default class App extends Vue {
     // this.startGame()
   }
 
-  get canStart() {
-    return this.options.pokemon || this.options.loanwords || this.options.n5Kanji || this.options.n5Hiragana
+  startGameWith(wordset: WordsetDescriptor) {
+    this.options.wordsetIndex = wordsets.indexOf(wordset)
+    this.startGame()
   }
 
   startGame() {
-    if (!this.canStart) return
     this.gameStarted = true
   }
 
   get defaultGameOptions(): GameOptions {
     return {
-      loanwords: false,
-      pokemon: false,
-      n5Kanji: true,
-      n5Hiragana: false,
-      voice: this.defaultVoiceName
+      wordsetIndex: 0,
+      voice: this.defaultVoiceName,
     }
   }
 
-  get defaultVoiceName(): string|null {
+  get defaultVoiceName(): string | null {
     const voicePrefs = _.sortBy(this.voiceOptions, (v) =>
       v.name.startsWith("Google") ? -1 : 0
     )
@@ -209,7 +293,7 @@ body
   justify-content: center
 
 main
-  margin-top: -3rem
+  min-height: 500px
   padding: 1rem
 
 h1
@@ -217,15 +301,46 @@ h1
   color: #eee
   font-size: 2rem
 
-.form-check-input, .form-check-label
-  cursor: pointer
-  user-select: none
+.wordsets
+  max-width: 250px
 
-.settings
+.wordsets h6
+  color: magenta
+  margin-top: 1rem
+
+  &:first-child
+    margin-top: 0
+
+.wordsets ul
+  margin: 0
+  padding: 0
+  margin-bottom: 2rem
+
+  li
+    list-style-type: none
+    cursor: pointer
+    padding: 0.2rem
+
+  li.selected
+    color: cyan
+    position: relative
+
+    &::before
+      content: ">"
+      position: absolute
+      left: -15px
+
+  li:hover
+    color: cyan
+
+.right
   display: flex
-  margin-bottom: 1rem
+  flex-direction: column
+  margin-left: 2rem
+  width: 300px
 
-  section
-    margin-right: 2rem
-
+  footer
+    text-align: right
+    padding: 1rem
+    // margin-top: auto
 </style>

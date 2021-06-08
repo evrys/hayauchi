@@ -8,10 +8,38 @@ export type WordsetItem = {
   tokens: PhoneticToken[]
 }
 
+export type WordsetId = 'common'|'loanwords'|'pokemon'|'n5vocab'
+
+export type WordsetDescriptor = {
+  type: 'hiragana'|'katakana'|'kanji'
+  id: WordsetId
+  name: string
+}
+
+export const wordsets = [
+  { type: "hiragana", id: "common", name: "Common Words" },
+  { type: "katakana", id: "loanwords", name: "Loanwords" },
+  { type: "katakana", id: "pokemon", name: "Pokémon Names" },
+  { type: "kanji", id: "n5vocab", name: "JLPT N5 Vocab" },
+] as WordsetDescriptor[]
+
+export function getWordset(id: WordsetId): WordsetItem[] {
+  if (id === 'common')
+    return getCommonHiraganaVocab()
+  else if (id === 'loanwords')
+    return getLoanwords()
+  else if (id === 'pokemon')
+    return getPokenames()
+  else if (id === 'n5vocab')
+    return getN5KanjiVocab()
+  else
+    throw new Error(`Unknown wordset id ${id}`)
+}
+
 // @ts-ignore
-import loanwordRows from '../data/loanwords.tsv'
-export function getLoanwords(): WordsetItem[] {
-  const rows = loanwordRows as [string, string]
+import n5HiraganaRows from '../data/JLPT5_Hiragana.tsv'
+export function getCommonHiraganaVocab(): WordsetItem[] {
+  const rows = n5HiraganaRows as [string, string][]
   return rows.map(r => ({
     jp: r[0],
     en: r[1],
@@ -31,9 +59,9 @@ export function getPokenames(): WordsetItem[] {
 }
 
 // @ts-ignore
-import n5HiraganaRows from '../data/JLPT5_Hiragana.tsv'
-export function getN5HiraganaVocab(): WordsetItem[] {
-  const rows = n5HiraganaRows as [string, string][]
+import loanwordRows from '../data/loanwords.tsv'
+export function getLoanwords(): WordsetItem[] {
+  const rows = loanwordRows as [string, string]
   return rows.map(r => ({
     jp: r[0],
     en: r[1],
