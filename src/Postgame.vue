@@ -28,7 +28,6 @@
           class="nameInput"
           placeholder="Name for leaderboard"
           v-model="nameForLeaderboard"
-          autofocus
         />
         <div class="d-flex">
           <button type="submit" class="btn btn-primary">Record Score</button>
