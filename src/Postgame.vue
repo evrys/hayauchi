@@ -2,6 +2,8 @@
   <div class="postgame">
     <div v-if="!showingLeaderboard">
       <h3>Game complete!</h3>
+      <p>{{wordset.name}}</p>
+
       <p>You achieved:</p>
 
       <table>
@@ -54,6 +56,7 @@
     </div>
     <div class="leaderboard" v-else-if="showingLeaderboard">
       <h3>High Scores</h3>
+      <p>{{wordset.name}}</p>
       <table class="table">
         <thead>
           <tr>
@@ -77,7 +80,7 @@
             :class="{ mine: entry.id === onlinePlayer.userId }"
           >
             <td v-if="entry.rank">{{ entry.rank }}.</td>
-            <td v-if="nameForLeaderboard && entry.id === onlinePlayer.userId">
+            <td v-if="nameForLeaderboard && entry.userId === onlinePlayer.userId">
               {{ nameForLeaderboard }}
             </td>
             <td v-else>{{ entry.name }}</td>
@@ -104,29 +107,37 @@ import {
   orderBy,
   serverTimestamp,
   setDoc,
-  doc
+  doc,
+  where
 } from "firebase/firestore"
 import { OnlinePlayer, ServerScoreData } from "./types"
 import Filter from 'bad-words'
+import { WordsetDescriptor } from "./wordsets"
 
 type LeaderboardEntry = { rank: number } & ServerScoreData
 
 @Component
 export default class Postgame extends Vue {
   @Prop({ type: Object, default: null }) onlinePlayer!: OnlinePlayer | null
+  @Prop({ type: Object, default: null }) wordset!: WordsetDescriptor
   @Prop({ type: Number, required: true }) score!: number
   @Prop({ type: Number, required: true }) wpm!: number
 
+
+  get prevScoreData(): ServerScoreData|undefined {
+    return this.onlinePlayer?.prevScores[this.wordset.id]
+  }
+
   /** Up to 10 scores, including ours, centered on us */
   leaderboard: LeaderboardEntry[] = []
-  nameForLeaderboard: string = this.onlinePlayer?.prevScoreData?.name || ""
+  nameForLeaderboard: string = this.prevScoreData?.name || ""
   showingLeaderboard: boolean = false
 
   get previousScore() {
     if (!this.onlinePlayer)
       return 0
 
-    const { prevScoreData } = this.onlinePlayer
+    const { prevScoreData } = this
     return prevScoreData ? prevScoreData.score : 0
   }
   
@@ -134,7 +145,7 @@ export default class Postgame extends Vue {
     if (!this.onlinePlayer)
       return false
 
-    const { prevScoreData } = this.onlinePlayer
+    const { prevScoreData } = this
     return prevScoreData ? this.score > prevScoreData.score : true
   }
 
@@ -171,9 +182,10 @@ export default class Postgame extends Vue {
     if (isNewHighScore) {
       // Record our score, anonymously at first (we'll update the name later)
       await setDoc(
-        doc(db, "scores", onlinePlayer.userId),
+        doc(db, "scores", `${onlinePlayer.userId}-${this.wordset.id}`),
         {
-          id: onlinePlayer.userId,
+          userId: onlinePlayer.userId,
+          wordsetId: this.wordset.id,
           score: this.score,
           wpm: this.wpm,
           timestamp: serverTimestamp(),
@@ -188,6 +200,7 @@ export default class Postgame extends Vue {
       await getDocs(
         query(
           scoresRef,
+          where("wordsetId", "==", this.wordset.id),
           orderBy("score", "desc"),
           orderBy("wpm", "desc"),
           orderBy("timestamp", "asc")
@@ -196,7 +209,7 @@ export default class Postgame extends Vue {
     ).docs.map((d) => d.data()) as ServerScoreData[]
 
     // Filter out any other nameless scores
-    allScores = allScores.filter(s => s.name || s.id === onlinePlayer.userId)
+    allScores = allScores.filter(s => s.name || s.userId === onlinePlayer.userId)
 
     // Calculate rank
     const rankedScores = allScores as LeaderboardEntry[]
@@ -205,7 +218,7 @@ export default class Postgame extends Vue {
     }
 
     // Find where we are in the leaderboard
-    const myScore = rankedScores.find((s) => s.id === onlinePlayer.userId)!
+    const myScore = rankedScores.find((s) => s.userId === onlinePlayer.userId)!
     const myScoreIndex = rankedScores.indexOf(myScore)
 
     // Now extract the 10 we actually want to show
@@ -243,7 +256,7 @@ export default class Postgame extends Vue {
     if (name) {
       // Record name for high score!
       const db = getFirestore()
-      await setDoc(doc(db, "scores", this.onlinePlayer!.userId), {
+      await setDoc(doc(db, "scores", `${this.onlinePlayer!.userId}-${this.wordset.id}`), {
         name: name
       }, { merge: true })
     }

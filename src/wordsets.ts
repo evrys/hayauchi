@@ -23,7 +23,7 @@ export const wordsets = [
   { type: "kanji", id: "n5vocab", name: "JLPT N5 Vocab" },
 ] as WordsetDescriptor[]
 
-export function getWordset(id: WordsetId): WordsetItem[] {
+export function getWords(id: WordsetId): WordsetItem[] {
   if (id === 'common')
     return getCommonHiraganaVocab()
   else if (id === 'loanwords')

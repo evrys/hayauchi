@@ -2,7 +2,7 @@
   <main>
     <div class="canvasContainer">
       <canvas width="800" height="600" />
-      <Postgame v-if="gameOver" :onlinePlayer="onlinePlayer" :score="score" :wpm="wpm" @exit="$emit('exit')"/>
+      <Postgame v-if="gameOver" :onlinePlayer="onlinePlayer" :score="score" :wpm="wpm" :wordset="wordset" @exit="$emit('exit')"/>
     </div>
     <div class="under d-flex" v-if="!gameOver">
       <form @submit.prevent="submitAttempt">
@@ -74,8 +74,8 @@ export default class Game extends Vue {
   @Prop({ type: Object, default: null }) onlinePlayer!: OnlinePlayer|null
   @Ref() readonly attemptInput!: HTMLInputElement
 
-  /** Combined wordset of all wordsets selected in game options */
-  wordset: WordsetItem[] = []
+  /** Words we can add to the game */
+  potentialWords: WordsetItem[] = _.shuffle(wordsets.getWords(this.wordset.id))
   /** Next word to add from the wordset */
   nextWordIndex: number = 0
 
@@ -96,6 +96,10 @@ export default class Game extends Vue {
 
   get score() {
     return Math.round(this.floatScore)
+  }
+
+  get wordset() {
+    return wordsets.wordsets[this.options.wordsetIndex]
   }
 
   wordScale: number = 1
@@ -165,9 +169,6 @@ export default class Game extends Vue {
 
   created() {
     ;(window as any).game = this
-
-    this.wordset = _.shuffle(wordsets.getWordset(wordsets.wordsets[this.options.wordsetIndex].id))
-    // this.wordset = _.reverse(_.uniqBy(this.wordset, (w) => w[0]))
   }
 
   mounted() {
@@ -255,9 +256,9 @@ export default class Game extends Vue {
     if (slot == null) return
 
     // Pick the next word to show
-    const wsi = this.wordset[this.nextWordIndex]!
+    const wsi = this.potentialWords[this.nextWordIndex]!
     this.nextWordIndex += 1
-    if (this.nextWordIndex >= this.wordset.length) {
+    if (this.nextWordIndex >= this.potentialWords.length) {
       this.nextWordIndex = 0
     }
 

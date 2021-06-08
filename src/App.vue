@@ -86,11 +86,34 @@
         </footer>
       </div>
       <div class="right about" v-else-if="page === 'about'">
-        <p>We made this little game because we kept mixing up katakana and wanted a fun way to practice.</p>
-        <p>Kanaspeed is based on the classic Linux terminal game <a href="http://typespeed.sourceforge.net/">typespeed</a>.</p>
-        <p>The wordsets come from <a href="https://en.wikipedia.org/wiki/List_of_gairaigo_and_wasei-eigo_terms">Wikipedia</a>, <a href="https://nihongoichiban.com/2011/04/30/complete-list-of-vocabulary-for-the-jlpt-n5/">Nihongo Ichiban</a>, and the <a href="https://www.npmjs.com/package/pokemon">Pokémon npm package</a>. 
-        <p>Created by <a href="https://github.com/mispy">Mispy</a> &amp; <a href="https://github.com/two-kay">Twokay</a></p>
-        <a href="https://github.com/mispy/kanaspeed">https://github.com/mispy/kanaspeed</a>
+        <p>
+          We made this little game because we kept mixing up katakana and wanted
+          a fun way to practice.
+        </p>
+        <p>
+          Kanaspeed is based on the classic Linux terminal game
+          <a href="http://typespeed.sourceforge.net/">typespeed</a>.
+        </p>
+        <p>
+          The wordsets come from
+          <a
+            href="https://en.wikipedia.org/wiki/List_of_gairaigo_and_wasei-eigo_terms"
+            >Wikipedia</a
+          >,
+          <a
+            href="https://nihongoichiban.com/2011/04/30/complete-list-of-vocabulary-for-the-jlpt-n5/"
+            >Nihongo Ichiban</a
+          >, and the
+          <a href="https://www.npmjs.com/package/pokemon">Pokémon npm package</a
+          >.
+        </p>
+        <p>
+          Created by <a href="https://github.com/mispy">Mispy</a> &amp;
+          <a href="https://github.com/two-kay">Twokay</a>
+        </p>
+        <a href="https://github.com/mispy/kanaspeed"
+          >https://github.com/mispy/kanaspeed</a
+        >
         <footer>
           <button class="btn" @click="page = 'intro'">Back</button>
         </footer>
@@ -129,7 +152,15 @@ import { Component, Vue, Watch } from "vue-property-decorator"
 import _ from "lodash"
 import Game from "./Game.vue"
 import type { GameOptions, OnlinePlayer, ServerScoreData } from "./types"
-import { doc, getDoc, getFirestore } from "firebase/firestore"
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  getFirestore,
+  query,
+  where,
+} from "firebase/firestore"
 import { WordsetDescriptor, wordsets } from "./wordsets"
 
 @Component({
@@ -163,8 +194,7 @@ export default class App extends Vue {
     // Sometimes browser takes a while to populate options
     speechSynthesis.addEventListener("voiceschanged", () => {
       this.browserVoices = speechSynthesis.getVoices()
-      if (!this.prevOptions.voice)
-        this.options.voice = this.defaultVoiceName
+      if (!this.prevOptions.voice) this.options.voice = this.defaultVoiceName
     })
     this.browserVoices = speechSynthesis.getVoices()
 
@@ -208,13 +238,16 @@ export default class App extends Vue {
 
   async fetchPlayerData(userId: string) {
     const db = getFirestore()
-    const prevScoreData = (
-      await getDoc(doc(db, "scores", userId))
-    ).data() as ServerScoreData | null
+
+    const prevScores = (
+      await getDocs(
+        query(collection(db, "scores"), where("userId", "==", userId))
+      )
+    ).docs.map(d => d.data()) as ServerScoreData[]
 
     this.onlinePlayer = {
       userId: userId,
-      prevScoreData: prevScoreData,
+      prevScores: _.keyBy(prevScores, d => d.wordsetId),
     }
   }
 

@@ -5,7 +5,8 @@ export type GameOptions = {
 
 /** What the high score entries look like in Firestore */
 export type ServerScoreData = {
-  id: string
+  userId: string
+  wordsetId: string
   name?: string
   score: number
   wpm: number
@@ -15,5 +16,5 @@ export type ServerScoreData = {
 /** Info we get after successfully connecting a player to Firebase */
 export type OnlinePlayer = {
   userId: string
-  prevScoreData: ServerScoreData|null
+  prevScores: {[wordsetId: string]: ServerScoreData|undefined}
 }
