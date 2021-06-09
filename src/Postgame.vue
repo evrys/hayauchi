@@ -12,8 +12,8 @@
           <td>{{ score }}</td>
         </tr>
         <tr>
-          <td>WPM:</td>
-          <td>{{ wpm }}</td>
+          <td>KPM:</td>
+          <td>{{ kpm }}</td>
         </tr>
       </table>
 
@@ -62,7 +62,7 @@
             <th v-if="leaderboard.length && leaderboard[0].rank">Rank</th>
             <th>Name</th>
             <th>Score</th>
-            <th>WPM</th>
+            <th>KPM</th>
           </tr>
         </thead>
         <tbody>
@@ -84,7 +84,7 @@
             </td>
             <td v-else>{{ entry.name }}</td>
             <td>{{ entry.score }}</td>
-            <td>{{ entry.wpm }}</td>
+            <td>{{ entry.kpm }}</td>
           </tr>
         </tbody>
       </table>
@@ -120,7 +120,7 @@ export default class Postgame extends Vue {
   @Prop({ type: Object, default: null }) onlinePlayer!: OnlinePlayer | null
   @Prop({ type: Object, default: null }) wordset!: WordsetDescriptor
   @Prop({ type: Number, required: true }) score!: number
-  @Prop({ type: Number, required: true }) wpm!: number
+  @Prop({ type: Number, required: true }) kpm!: number
 
 
   get prevScoreData(): ServerScoreData|undefined {
@@ -186,7 +186,7 @@ export default class Postgame extends Vue {
           userId: onlinePlayer.userId,
           wordsetId: this.wordset.id,
           score: this.score,
-          wpm: this.wpm,
+          kpm: this.kpm,
           timestamp: serverTimestamp(),
         },
         { merge: true }
@@ -201,7 +201,7 @@ export default class Postgame extends Vue {
           scoresRef,
           where("wordsetId", "==", this.wordset.id),
           orderBy("score", "desc"),
-          orderBy("wpm", "desc"),
+          orderBy("kpm", "desc"),
           orderBy("timestamp", "asc")
         )
       )

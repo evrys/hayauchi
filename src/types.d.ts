@@ -9,7 +9,7 @@ export type ServerScoreData = {
   wordsetId: string
   name?: string
   score: number
-  wpm: number
+  kpm: number
   timestamp: number
 }
 

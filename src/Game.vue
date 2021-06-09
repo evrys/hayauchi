@@ -2,7 +2,7 @@
   <main>
     <div class="canvasContainer">
       <canvas width="800" height="600" />
-      <Postgame v-if="gameOver" :onlinePlayer="onlinePlayer" :score="score" :wpm="wpm" :wordset="wordset" @exit="$emit('exit')"/>
+      <Postgame v-if="gameOver" :onlinePlayer="onlinePlayer" :score="score" :kpm="kpm" :wordset="wordset" @exit="$emit('exit')"/>
     </div>
     <div class="under d-flex" v-if="!gameOver">
       <form @submit.prevent="submitAttempt">
@@ -17,7 +17,7 @@
       </form>
       <ul class="stats d-flex ms-auto">
         <li>Score: <span>{{ score }}</span></li>
-        <li>WPM: <span>{{ wpm }}</span></li>
+        <li>KPM: <span>{{ kpm }}</span></li>
         <li>Misses: <span class="misses">{{ wordsMissed }}</span></li>
         <li>Hints: Hold <span>Shift</span></li>
       </ul>
@@ -81,7 +81,7 @@ export default class Game extends Vue {
 
   attempt: string = ""
   floatScore: number = 0
-  wordsCompleted: number = 0
+  kanaCompleted: number = 0
   wordsMissed: number = 0
   hintsActive: boolean = false
 
@@ -450,7 +450,7 @@ export default class Game extends Vue {
 
     for (const word of completedWords) {
       this.floatScore += word.romaji.length
-      this.wordsCompleted += 1
+      this.kanaCompleted += (word.wsi.kana||word.wsi.jp).length
 
       const text = new PIXI.Text(word.wsi.en)
       text.style = this.wordStyle
@@ -487,12 +487,12 @@ export default class Game extends Vue {
     return voicePrefs[0] || null
   }
 
-  get wpm() {
-    const wpm = Math.round(this.wordsCompleted / (this.timeTaken / (1000 * 60)))
-    if (isNaN(wpm)) {
+  get kpm() {
+    const kpm = Math.round(this.kanaCompleted / (this.timeTaken / (1000 * 60)))
+    if (isNaN(kpm)) {
       return 0
     }
-    return wpm
+    return kpm
   }
 
   speak(s: string) {
