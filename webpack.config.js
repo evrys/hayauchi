@@ -97,11 +97,6 @@ module.exports = env => {
               }
             },
 
-            // For autoprefixing
-            {
-              loader: 'postcss-loader',
-            },
-
             {
               loader: 'sass-loader',
               options: {
@@ -123,11 +118,6 @@ module.exports = env => {
               options: {
                 sourceMap: true
               }
-            },
-
-            // For autoprefixing
-            {
-              loader: 'postcss-loader',
             },
 
             {
