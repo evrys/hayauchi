@@ -1,8 +1,11 @@
 <template>
-  <main v-if="!gameStarted">
+  <main class="container" v-if="!gameStarted">
     <h1>Kanaspeed</h1>
-    <div class="d-flex">
-      <div class="wordsets">
+    <div v-if="!isAppropriateDevice" class="alert alert-warning">
+      This game is intended to be played on a computer with a physical keyboard.
+    </div>
+    <div class="row">
+      <div class="col col-sm-12 col-md-6 wordsets">
         <h6>Hiragana</h6>
         <ul>
           <li
@@ -40,7 +43,7 @@
         </ul>
         <p>Use up/down/enter to choose a wordset.<br /></p>
       </div>
-      <div class="right intro" v-if="page === 'intro'">
+      <div class="col col-sm-12 col-md-6 right intro" v-if="page === 'intro'">
         <p>Practice your Japanese reading speed!</p>
         <p>
           A game ends after 10 missed words.<br />
@@ -51,7 +54,7 @@
           <button class="btn" @click="page = 'settings'">Settings</button>
         </footer>
       </div>
-      <div class="right settings" v-else-if="page === 'settings'">
+      <div class="col col-sm-12 col-md-6 right settings" v-else-if="page === 'settings'">
         <section class="voiceSetting" v-if="voiceOptions.length > 0">
           <h6>Voice Synth</h6>
           <div class="form-check">
@@ -176,6 +179,10 @@ export default class App extends Vue {
 
   options: GameOptions = this.defaultGameOptions
   prevOptions: any = {}
+
+  get isAppropriateDevice() {
+    return !('ontouchstart' in document.documentElement)
+  }
 
   async created() {
     this.keydown = this.keydown.bind(this)
@@ -329,7 +336,8 @@ body
   align-items: center
   justify-content: center
 
-main
+main.container
+  max-width: 600px
   min-height: 500px
   padding: 1rem
 
@@ -338,8 +346,6 @@ h1
   color: #eee
   font-size: 2rem
 
-.wordsets
-  max-width: 250px
 
 .wordsets h6
   color: magenta
@@ -373,11 +379,17 @@ h1
 .right
   display: flex
   flex-direction: column
-  margin-left: 2rem
-  width: 300px
 
   footer
     text-align: right
     padding: 1rem
     // margin-top: auto
+
+@include media-breakpoint-down(md)
+  .right
+    padding-top: 1rem
+    border-top: 1px solid #ccc
+    margin-top: 1rem
+    max-width: 300px
+
 </style>

@@ -1,26 +1,28 @@
 <template>
   <main>
-    <div class="canvasContainer">
-      <canvas width="800" height="600" />
-      <Postgame v-if="gameOver" :onlinePlayer="onlinePlayer" :score="score" :kpm="kpm" :wordset="wordset" @exit="$emit('exit')"/>
-    </div>
-    <div class="under d-flex" v-if="!gameOver">
-      <form @submit.prevent="submitAttempt">
-        <span>&gt; </span>
-        <input
-          type="text"
-          class="attemptInput"
-          ref="attemptInput"
-          v-model="attempt"
-          autofocus
-        />
-      </form>
-      <ul class="stats d-flex ms-auto">
-        <li>Score: <span>{{ score }}</span></li>
-        <li>KPM: <span>{{ kpm }}</span></li>
-        <li>Misses: <span class="misses">{{ wordsMissed }}</span></li>
-        <li>Hints: Hold <span>Shift</span></li>
-      </ul>
+    <div class="game">
+      <div class="canvasContainer">
+        <canvas width="800" height="600" />
+        <Postgame v-if="gameOver" :onlinePlayer="onlinePlayer" :score="score" :kpm="kpm" :wordset="wordset" @exit="$emit('exit')"/>
+      </div>
+      <div class="under d-flex" v-if="!gameOver">
+        <form @submit.prevent="submitAttempt">
+          <span>&gt; </span>
+          <input
+            type="text"
+            class="attemptInput"
+            ref="attemptInput"
+            v-model="attempt"
+            autofocus
+          />
+        </form>
+        <ul class="stats d-flex ms-auto">
+          <li>Score: <span>{{ score }}</span></li>
+          <li>KPM: <span>{{ kpm }}</span></li>
+          <li>Misses: <span class="misses">{{ wordsMissed }}</span></li>
+          <li>Hints: Hold <span>Shift</span></li>
+        </ul>
+      </div>
     </div>
   </main>
 </template>
@@ -139,6 +141,7 @@ export default class Game extends Vue {
   
   width: number = 800 / window.devicePixelRatio
   height: number = 600 / window.devicePixelRatio
+  windowWidth: number = window.innerWidth
 
   pixi!: PIXI.Application
   words: Word[] = []
@@ -193,6 +196,8 @@ export default class Game extends Vue {
 
     this.pixi.ticker.add(this.frame)
     this.attemptInput.focus()
+
+    window.addEventListener("resize", this.onResize)
     this.onResize()
 
     window.addEventListener("keydown", this.keydown)
@@ -245,7 +250,7 @@ export default class Game extends Vue {
   }
 
   onResize() {
-    // TODO
+    this.windowWidth = window.innerWidth
   }
 
   /** Get the total number of romaji that need to be typed for the current screen */
@@ -534,6 +539,10 @@ export default class Game extends Vue {
 </script>
 
 <style lang="sass">
+main
+  margin: auto
+  max-width: calc(100vw - 3rem)
+
 .canvasContainer
   position: relative
 
