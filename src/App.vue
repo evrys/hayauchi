@@ -1,6 +1,6 @@
 <template>
   <main class="container" v-if="!gameStarted">
-    <h1>Kanaspeed</h1>
+    <h1>Hayauchi</h1>
     <div v-if="!isAppropriateDevice" class="alert alert-warning">
       This game is intended to be played on a computer with a physical keyboard.
     </div>
@@ -94,7 +94,7 @@
           a fun way to practice.
         </p>
         <p>
-          Kanaspeed is based on the classic Linux terminal game
+          Hayauchi is based on the classic Linux terminal game
           <a href="http://typespeed.sourceforge.net/">typespeed</a>.
         </p>
         <p>
@@ -114,8 +114,8 @@
           Created by <a href="https://github.com/mispy">Mispy</a> &amp;
           <a href="https://github.com/two-kay">Twokay</a>
         </p>
-        <a href="https://github.com/mispy/kanaspeed"
-          >https://github.com/mispy/kanaspeed</a
+        <a href="https://github.com/mispy/hayauchi"
+          >https://github.com/mispy/hayauchi</a
         >
         <footer>
           <button class="btn" @click="page = 'intro'">Back</button>
