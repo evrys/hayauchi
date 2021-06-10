@@ -40,7 +40,7 @@ export function getWords(id: WordsetId): WordsetItem[] {
 import n5HiraganaRows from '../data/JLPT5_Hiragana.tsv'
 export function getCommonHiraganaVocab(): WordsetItem[] {
   const rows = n5HiraganaRows as [string, string][]
-  return rows.map(r => ({
+  return rows.slice(1).map(r => ({
     jp: r[0],
     en: r[1],
     tokens: tokenizeKana(r[0])
@@ -48,7 +48,7 @@ export function getCommonHiraganaVocab(): WordsetItem[] {
 }
 
 // @ts-ignore
-import pokenameRows from '../data/pokenames'
+import pokenameRows from '../data/pokenames.json'
 export function getPokenames(): WordsetItem[] {
   const rows = pokenameRows as [string, string][]
   return rows.map(r => ({
@@ -62,7 +62,7 @@ export function getPokenames(): WordsetItem[] {
 import loanwordRows from '../data/loanwords.tsv'
 export function getLoanwords(): WordsetItem[] {
   const rows = loanwordRows as [string, string]
-  return rows.map(r => ({
+  return rows.slice(1).map(r => ({
     jp: r[0],
     en: r[1],
     tokens: tokenizeKana(r[0])
