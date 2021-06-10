@@ -465,10 +465,12 @@ export default class Game extends Vue {
   submitAttempt() {
     const completedWords = []
 
+    let sparklyClear = false
     for (const word of this.words) {
       if (matchAttempt(this.attempt, word.wsi.kana||word.wsi.jp).remainingKana.length === 0) {
         if (word.isSparkly) {
           completedWords.push(...this.words)
+          sparklyClear = true
           break
         } else {
           completedWords.push(word)
@@ -477,16 +479,17 @@ export default class Game extends Vue {
     }
 
     for (const word of completedWords) {
-      this.floatScore += word.romaji.length
-      this.kanaCompleted += (word.wsi.kana||word.wsi.jp).length
-
-      const text = new PIXI.Text(word.wsi.en)
-      text.style = word.isSparkly ? this.sparklyWordStyle : this.wordStyle
-      text.scale.x = this.wordScale
-      text.scale.y = this.wordScale
-      text.x = word.obj.x
-      text.y = word.obj.y
-      this.translations.addChild(text)
+      if (!sparklyClear || word.isSparkly) {
+        this.floatScore += word.romaji.length * (word.isSparkly ? 2 : 1)
+        this.kanaCompleted += (word.wsi.kana||word.wsi.jp).length
+        const text = new PIXI.Text(word.wsi.en)
+        text.style = word.isSparkly ? this.sparklyWordStyle : this.wordStyle
+        text.scale.x = this.wordScale
+        text.scale.y = this.wordScale
+        text.x = word.obj.x
+        text.y = word.obj.y
+        this.translations.addChild(text)
+      }
 
       this.removeWord(word)
     }
