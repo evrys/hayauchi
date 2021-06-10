@@ -498,7 +498,7 @@ export default class Game extends Vue {
 
   get voice(): SpeechSynthesisVoice | null {
     const { options } = this
-    if (options.voice === null) return null
+    if (options.voice === 'none') return null
 
     const jpvoices = speechSynthesis
       .getVoices()

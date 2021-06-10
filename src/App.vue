@@ -59,7 +59,7 @@
               class="form-check-input"
               type="radio"
               id="novoice"
-              :value="null"
+              :value="'none'"
               v-model="options.voice"
             />
             <label class="form-check-label" for="novoice"> No voice </label>
@@ -192,10 +192,11 @@ export default class App extends Vue {
     } catch (err) {}
 
     // Sometimes browser takes a while to populate options
-    speechSynthesis.addEventListener("voiceschanged", () => {
-      this.browserVoices = speechSynthesis.getVoices()
-      if (!this.prevOptions.voice) this.options.voice = this.defaultVoiceName
-    })
+    if (speechSynthesis.addEventListener) {
+      speechSynthesis.addEventListener("voiceschanged", () => {
+        this.browserVoices = speechSynthesis.getVoices()
+      })
+    }
     this.browserVoices = speechSynthesis.getVoices()
 
     // This auth will be used for the leaderboard later, let's sign in now
@@ -298,16 +299,19 @@ export default class App extends Vue {
   get defaultGameOptions(): GameOptions {
     return {
       wordsetIndex: 0,
-      voice: this.defaultVoiceName,
+      voice: null
     }
   }
 
-  get defaultVoiceName(): string | null {
+  @Watch("voiceOptions", { immediate: true })
+  pickDefaultVoice() {
+    if (this.options.voice !== null || !this.voiceOptions.length) return
+
     const voicePrefs = _.sortBy(this.voiceOptions, (v) =>
       v.name.startsWith("Google") ? -1 : 0
     )
 
-    return voicePrefs[0]?.name || null
+    this.options.voice = voicePrefs[0].name
   }
 }
 </script>

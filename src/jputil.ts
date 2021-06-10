@@ -100,16 +100,6 @@ export function tokenizeKana(jp: string): PhoneticToken[] {
   }))
 }
 
-const KANA_BOUNDARY = new RegExp(`(?<=[${KANA}])(?=[^${KANA}])|(?<=[^${KANA}])(?=[${KANA}])`)
-/**
- * Split some Japanese text into parts that are pure kana and parts that aren't,
- * preserving the order of the elements
- * e.g. お兄さん => ["お", "兄", "さん"]
- */
-export function splitKanaBoundaries(jp: string): string[] {
-  return jp.split(KANA_BOUNDARY)
-}
-
 export type TokenCompletion = {
   doneKana: string
   remainingKana: string

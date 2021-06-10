@@ -1,6 +1,7 @@
 export type GameOptions = {
   wordsetIndex: number
-  voice: string|null
+  // null means default
+  voice: 'none'|string|null
 }
 
 /** What the high score entries look like in Firestore */
