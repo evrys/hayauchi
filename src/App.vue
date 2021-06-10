@@ -1,6 +1,6 @@
 <template>
   <main class="container" v-if="!gameStarted">
-    <h1>Hayauchi</h1>
+    <h1>hayauchi</h1>
     <div v-if="!isAppropriateDevice" class="alert alert-warning">
       This game is intended to be played on a computer with a physical keyboard.
     </div>
