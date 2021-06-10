@@ -150,7 +150,7 @@ export default class Game extends Vue {
 
   /** How many words can potentially be in play at once */
   get totalSlots() {
-    return 10
+    return 12
   }
 
   get rowHeight() {
