@@ -47,7 +47,7 @@
         <p>Practice your Japanese reading speed!</p>
         <p>
           A game ends after 10 missed words.<br />
-          Type as many as you can to get a high score.
+          Type the romaji reading for as many as you can to get a high score.
         </p>
         <footer>
           <button class="btn" @click="page = 'about'">About</button>
@@ -88,7 +88,7 @@
           <button class="btn" @click="page = 'intro'">Back</button>
         </footer>
       </div>
-      <div class="right about" v-else-if="page === 'about'">
+      <div class="right col col-sm-12 col-md-6 about" v-else-if="page === 'about'">
         <p>
           We made this little game because we kept mixing up katakana and wanted
           a fun way to practice.
@@ -379,6 +379,7 @@ h1
 .right
   display: flex
   flex-direction: column
+  max-width: 300px
 
   footer
     text-align: right
