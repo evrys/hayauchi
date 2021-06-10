@@ -356,12 +356,7 @@ export default class Game extends Vue {
         this.$emit("exit")
         return
       }
-
-      this.$nextTick(() =>
-        (document.getElementsByClassName(
-          "nameInput"
-        )[0]! as HTMLInputElement)?.focus()
-      )
+  
       return
     }
 
