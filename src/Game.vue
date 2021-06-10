@@ -47,7 +47,6 @@ type Word = {
   slot: number
   obj: PIXI.Container
   tokenParts: TokenDisplayPart[],
-  speed: number
   alreadySpoken: boolean
   isSparkly: boolean
 }
@@ -61,12 +60,6 @@ type TokenDisplayPart = {
   hintText: PIXI.Text
   doneHintText: PIXI.Text
 }
-
-type LeaderboardEntry = { 
-  rank: number
-}
-
-const WORDS_BETWEEN_SPARKLES = 10
 
 @Component({
   components: { Postgame },
@@ -90,7 +83,6 @@ export default class Game extends Vue {
   floatScore: number = 0
   kanaCompleted: number = 0
   wordsMissed: number = 0
-  wordsUntilSparkle: number = WORDS_BETWEEN_SPARKLES
   hintsActive: boolean = false
 
   gameOver: boolean = false
@@ -172,17 +164,6 @@ export default class Game extends Vue {
     }
     return Array.from(freeSlots)
   }
-  // canUseWord(jp: string) {
-  //   const hiraganaRegex = /[あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわゐゑをんがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽぁぃぅぇぉっゃょゅぇ]/
-  //   if (!this.options.hiragana && jp.match(hiraganaRegex))
-  //     return false
-
-  //   const katakanaRegex = /[アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヰヱヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポァィゥェォーャョュェッ]/g
-  //   if (!this.options.katakana && jp.match(katakanaRegex))
-  //     return false
-
-  //   return true
-  // }
 
   created() {
     ;(window as any).game = this
@@ -278,11 +259,7 @@ export default class Game extends Vue {
     const slot = _.sample(freeSlots)
     if (slot == null) return
 
-    let isSparkly = false
-    if (this.wordsUntilSparkle <= 0 && !this.words.some(w => w.isSparkly)) {
-      isSparkly = true
-      this.wordsUntilSparkle = WORDS_BETWEEN_SPARKLES
-    }
+    const isSparkly = this.timeTaken > 5000 && Math.random() > 0.95 && !this.words.some(w => w.isSparkly)
 
     // Pick the next word to show
     const wsi = isSparkly ? this.potentialSparklies[this.nextSparklyIndex] : this.potentialWords[this.nextWordIndex]
@@ -362,7 +339,6 @@ export default class Game extends Vue {
       slot: slot,
       obj: wordObj,
       tokenParts: tokenParts,
-      speed: 0.2 * (5 / romaji.length),
       alreadySpoken: false,
       isSparkly: isSparkly
     })
@@ -406,7 +382,7 @@ export default class Game extends Vue {
 
     const missedWords: Word[] = []
     for (const word of this.words) {
-      word.obj.x += (deltaTime * rate) / 30
+      word.obj.x += (deltaTime * rate * (word.isSparkly ? 2 : 1)) / 30
 
       if (word.obj.x > this.width) {
         missedWords.push(word)
@@ -495,7 +471,6 @@ export default class Game extends Vue {
           completedWords.push(...this.words)
           break
         } else {
-          this.wordsUntilSparkle -= 1
           completedWords.push(word)
         }
       }
