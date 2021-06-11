@@ -50,8 +50,8 @@
           Type the romaji reading for as many as you can to get a high score.
         </p>
         <footer>
-          <button class="btn" @click="page = 'about'">About</button>
-          <button class="btn" @click="page = 'settings'">Settings</button>
+          <button class="btn" key="about" @click="page = 'about'">About</button>
+          <button class="btn" key="settings" @click="page = 'settings'">Settings</button>
         </footer>
       </div>
       <div class="col col-sm-12 col-md-6 right settings" v-else-if="page === 'settings'">

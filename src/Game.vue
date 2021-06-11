@@ -29,7 +29,7 @@
 
 <script lang="ts">
 import { Component, Prop, Ref, Vue, Watch } from "vue-property-decorator"
-import _ from "lodash"
+import _, { times } from "lodash"
 import type { GameOptions, OnlinePlayer } from "./types"
 import * as PIXI from "pixi.js"
 import Postgame from './Postgame.vue'
@@ -91,6 +91,8 @@ export default class Game extends Vue {
 
   startTime: number = Date.now()
   timestamp: number = Date.now()
+  /** When we last added a sparkly word */
+  lastSparklyTime: number = 0
 
   get timeTaken() {
     return this.timestamp - this.startTime
@@ -264,7 +266,12 @@ export default class Game extends Vue {
     const slot = _.sample(freeSlots)
     if (slot == null) return
 
-    const isSparkly = this.timeTaken > 5000 && Math.random() > 0.95 && !this.words.some(w => w.isSparkly)
+    const timeSinceSparkly = this.timestamp - this.lastSparklyTime
+    console.log(timeSinceSparkly)
+    const isSparkly = timeSinceSparkly > 30000 && Math.random() > 0.95
+    if (isSparkly) {
+      this.lastSparklyTime = this.timestamp
+    }
 
     // Pick the next word to show
     const wsi = isSparkly ? this.potentialSparklies[this.nextSparklyIndex] : this.potentialWords[this.nextWordIndex]
