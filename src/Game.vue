@@ -436,7 +436,7 @@ export default class Game extends Vue {
         const tc = tokenCompletion[i]
         const part = word.tokenParts[i]
 
-        if (part.token.isKanaOnly) {
+        if (word.wsi.tokens.every(t => t.isKanaOnly)) {
           part.doneText.text = tc.doneKana
           part.remainingText.text = tc.remainingKana
           part.remainingText.x = tc.doneKana.length ? part.doneText.width : 0
