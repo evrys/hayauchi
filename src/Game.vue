@@ -267,7 +267,6 @@ export default class Game extends Vue {
     if (slot == null) return
 
     const timeSinceSparkly = this.timestamp - this.lastSparklyTime
-    console.log(timeSinceSparkly)
     const isSparkly = timeSinceSparkly > 30000 && Math.random() > 0.95
     if (isSparkly) {
       this.lastSparklyTime = this.timestamp
