@@ -1,5 +1,7 @@
 import hepburn from 'hepburn'
+import * as wanakana from 'wanakana'
 
+  ; (window as any).wanakana = wanakana
   ; (window as any).hepburn = hepburn
 
 const HIRAGANA = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわゐゑをんがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽぁぃぅぇぉ"
@@ -135,8 +137,8 @@ export function matchAttemptToTokens(attempt: string, tokens: PhoneticToken[]): 
       completion.doneKana = token.kana
       completion.remainingKana = ""
     } else {
-      completion.doneKana = token.kana.slice(0, doneKana.length-kanaIndex)
-      completion.remainingKana = token.kana.slice(doneKana.length-kanaIndex)
+      completion.doneKana = token.kana.slice(0, doneKana.length - kanaIndex)
+      completion.remainingKana = token.kana.slice(doneKana.length - kanaIndex)
       break
     }
     kanaIndex += token.kana.length
@@ -147,12 +149,14 @@ export function matchAttemptToTokens(attempt: string, tokens: PhoneticToken[]): 
 
 export function matchAttempt(attempt: string, kana: string) {
   const expectedRomaji = toRomaji(kana)
+  const expectedRomaji2 = wanakana.toRomaji(kana)
+
   let bestSlice = 0
   let prevBitRomaji = ""
   for (let i = 0; i < kana.length; i++) {
     const bit = kana.slice(0, i + 1)
     const bitRomaji = toRomaji(bit)
-    if (!expectedRomaji.startsWith(bitRomaji)) {
+    if (!expectedRomaji.startsWith(bitRomaji) && !expectedRomaji2.startsWith(bitRomaji)) {
       // Matching here would be misleading
       // e.g. ki shouldn't match any of キャ
       continue
@@ -164,7 +168,7 @@ export function matchAttempt(attempt: string, kana: string) {
     }
 
     const attemptBit = attempt.slice(0, bitRomaji.length)
-    if (bitRomaji === attemptBit || toHiragana(bitRomaji) === toHiragana(attemptBit)) {
+    if (bitRomaji === attemptBit || toHiragana(bitRomaji) === toHiragana(attemptBit) || wanakana.toHiragana(bitRomaji) === wanakana.toHiragana(attemptBit)) {
       // Found a match!
       bestSlice = i + 1
     }

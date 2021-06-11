@@ -1,4 +1,4 @@
-import { toRomaji, phoneticKanaSplit, alignKanjiReading, toKatakana, matchAttempt, toHiragana, splitKanaBoundaries } from '../src/jputil'
+import { toRomaji, phoneticKanaSplit, toKatakana, matchAttempt, toHiragana } from '../src/jputil'
 
 
 describe('jputil', () => {
@@ -22,21 +22,6 @@ describe('jputil', () => {
     expect(phoneticKanaSplit("キャッチコピー")).toEqual(["キャ", "ッチ", "コ", "ピー"])
     expect(phoneticKanaSplit("チアリーディング")).toEqual(["チ", "ア", "リー", "ディ", "ン", "グ"])
     expect(phoneticKanaSplit("ゴールデンウィーク")).toEqual(["ゴー", "ル", "デ", "ン", "ウィー", "ク"])
-  })
-
-  it('aligns kanji-containing vocab parts with their readings', async () => {
-    expect(splitKanaBoundaries("お兄さん")).toEqual(["お", "兄", "さん"])
-    expect(splitKanaBoundaries("可愛い")).toEqual(["可愛", "い"])
-    // expect(alignKanjiReading("お兄さん", "おにいさん")).toEqual([
-    //   ['お', 'お'],
-    //   ['兄', 'にい'],
-    //   ['さん', 'さん']
-    // ])
-
-    // expect(alignKanjiReading("可愛い", "かわいい")).toEqual([
-    //   ['可愛', 'かわい'],
-    //   ['い', 'い']
-    // ])
   })
 
   // it('progressively and permissively matches romaji input to kana', async () => {
@@ -67,6 +52,8 @@ describe('jputil', () => {
     expect(matchAttempt("kyacchikop", "キャッチコピー").doneKana).toEqual("キャッチコ")
     expect(matchAttempt("kyacchikopi", "キャッチコピー").doneKana).toEqual("キャッチコピ")
     expect(matchAttempt("kyacchikopii", "キャッチコピー").doneKana).toEqual("キャッチコピー")
+
+    expect(matchAttempt("tuitaa", "ツイター").doneKana).toEqual("ツイター")
 
     
   // })

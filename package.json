@@ -12,6 +12,7 @@
     "@types/hepburn": "^1.2.0",
     "@types/jest": "^26.0.23",
     "@types/lodash": "^4.14.169",
+    "@types/wanakana": "^4.0.2",
     "bad-words": "^3.0.4",
     "bootstrap": "^5.0.1",
     "bootswatch": "^5.0.1",
@@ -35,6 +36,7 @@
     "vue-loader": "^15.9.7",
     "vue-property-decorator": "^9.1.2",
     "vue-template-compiler": "^2.6.14",
+    "wanakana": "^4.0.2",
     "webpack": "^5.38.1"
   },
   "devDependencies": {
