@@ -45,10 +45,8 @@
       </div>
       <div class="col col-sm-12 col-md-6 right intro" v-if="page === 'intro'">
         <p>Practice your Japanese reading speed!</p>
-        <p>
-          A game ends after 10 missed words.<br />
-          Type the romaji reading for as many as you can to get a high score.
-        </p>
+        <p>A game ends after 10 missed words, or when you press ESC.</p>
+        <p>Type the romaji reading for as many as you can, and see how you score on the leaderboard!</p>
         <footer>
           <button class="btn" key="about" @click="page = 'about'">About</button>
           <button class="btn" key="settings" @click="page = 'settings'">Settings</button>
