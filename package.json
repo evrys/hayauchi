@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "webpack serve --progress",
     "build": "webpack --env production --progress",
-    "deploy": "webpack --env production --progress && netlify deploy --prod -d dist"
+    "deploy": "rm -rf dist && webpack --env production --progress && netlify deploy --prod -d dist"
   },
   "dependencies": {
     "@types/bad-words": "^3.0.0",

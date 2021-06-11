@@ -106,6 +106,16 @@ export type TokenCompletion = {
 }
 
 export function matchAttemptToTokens(attempt: string, tokens: PhoneticToken[]): TokenCompletion[] {
+  if (attempt.trim() === tokens.map(t => t.jp).join("")) {
+    // Support just typing the whole word using IME
+    return tokens.map(t => {
+      return {
+        doneKana: t.kana,
+        remainingKana: ""
+      }
+    })
+  }
+
   const fullKana = tokens.map(t => t.kana).join("")
   const { doneKana, remainingKana } = matchAttempt(attempt, fullKana)
 

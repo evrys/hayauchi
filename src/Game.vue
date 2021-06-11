@@ -480,7 +480,8 @@ export default class Game extends Vue {
 
     let sparklyClear = false
     for (const word of this.words) {
-      if (matchAttempt(this.attempt, word.wsi.kana||word.wsi.jp).remainingKana.length === 0) {
+      const tokenCompletion = jputil.matchAttemptToTokens(this.attempt, word.wsi.tokens)
+      if (tokenCompletion.every(t => t.remainingKana.length === 0)) {
         if (word.isSparkly) {
           completedWords.push(...this.words)
           sparklyClear = true
@@ -508,10 +509,6 @@ export default class Game extends Vue {
     }
 
     this.attempt = ""
-  }
-
-  matchAttemptTo(wsi: WordsetItem) {
-    return matchAttempt(this.attempt, wsi.jp)
   }
 
   get voice(): SpeechSynthesisVoice | null {
