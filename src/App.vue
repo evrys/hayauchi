@@ -348,7 +348,7 @@ h1
 
 
 .wordsets h6
-  color: magenta
+  color: lightgreen
   margin-top: 1rem
 
   &:first-child
