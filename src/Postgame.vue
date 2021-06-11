@@ -121,6 +121,7 @@ export default class Postgame extends Vue {
   @Prop({ type: Object, default: null }) wordset!: WordsetDescriptor
   @Prop({ type: Number, required: true }) score!: number
   @Prop({ type: Number, required: true }) kpm!: number
+  @Prop({ type: Number, required: true }) duration!: number
 
 
   get prevScoreData(): ServerScoreData|undefined {
@@ -187,6 +188,7 @@ export default class Postgame extends Vue {
           wordsetId: this.wordset.id,
           score: this.score,
           kpm: this.kpm,
+          duration: this.duration,
           timestamp: serverTimestamp(),
         },
         { merge: true }

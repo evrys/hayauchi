@@ -3,7 +3,7 @@
     <div class="game">
       <div class="canvasContainer">
         <canvas width="800" height="600" />
-        <Postgame v-if="gameOver" :onlinePlayer="onlinePlayer" :score="score" :kpm="kpm" :wordset="wordset" @exit="$emit('exit')"/>
+        <Postgame v-if="gameOver" :onlinePlayer="onlinePlayer" :score="score" :kpm="kpm" :duration="timeTaken" :wordset="wordset" @exit="$emit('exit')"/>
       </div>
       <div class="under d-flex" v-if="!gameOver">
         <form @submit.prevent="submitAttempt">
@@ -378,7 +378,14 @@ export default class Game extends Vue {
 
     const minspeed = 3
     const step = 175
-    const rate = minspeed + this.score / step
+    let rate = minspeed + this.score / step
+
+    // Start ramping up difficulty faster
+    if (this.score > 100) {
+      rate += (this.score-100)**1.1 / step
+    }
+
+
 
     // Drain score while using hints
     if (this.hintsActive) {
