@@ -107,7 +107,8 @@ import {
   serverTimestamp,
   setDoc,
   doc,
-  where
+  where,
+  limit
 } from "firebase/firestore"
 import { OnlinePlayer, ServerScoreData } from "./types"
 import Filter from 'bad-words'
@@ -204,7 +205,8 @@ export default class Postgame extends Vue {
           where("wordsetId", "==", this.wordset.id),
           orderBy("score", "desc"),
           orderBy("kpm", "desc"),
-          orderBy("timestamp", "asc")
+          orderBy("timestamp", "asc"),
+          limit(100)
         )
       )
     ).docs.map((d) => d.data()) as ServerScoreData[]
