@@ -396,7 +396,7 @@ export default class Game extends Vue {
 
     const missedWords: Word[] = []
     for (const word of this.words) {
-      word.obj.x += (deltaTime * rate * (word.isSparkly ? 2 : 1)) / 30
+      word.obj.x += (deltaTime * rate * (word.isSparkly ? 3 : 1)) / 30
 
       if (word.obj.x > this.width) {
         missedWords.push(word)
