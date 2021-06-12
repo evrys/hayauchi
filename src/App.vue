@@ -46,13 +46,21 @@
       <div class="col col-sm-12 col-md-6 right intro" v-if="page === 'intro'">
         <p>Practice your Japanese reading speed!</p>
         <p>A game ends after 10 missed words, or when you press ESC.</p>
-        <p>Type the romaji reading for as many as you can, and see how you score on the leaderboard.</p>
+        <p>
+          Type the romaji reading for as many as you can, and see how you score
+          on the leaderboard.
+        </p>
         <footer>
           <button class="btn" key="about" @click="page = 'about'">About</button>
-          <button class="btn" key="settings" @click="page = 'settings'">Settings</button>
+          <button class="btn" key="settings" @click="page = 'settings'">
+            Settings
+          </button>
         </footer>
       </div>
-      <div class="col col-sm-12 col-md-6 right settings" v-else-if="page === 'settings'">
+      <div
+        class="col col-sm-12 col-md-6 right settings"
+        v-else-if="page === 'settings'"
+      >
         <section class="voiceSetting" v-if="voiceOptions.length > 0">
           <h6>Voice Synth</h6>
           <div class="form-check">
@@ -86,7 +94,10 @@
           <button class="btn" @click="page = 'intro'">Back</button>
         </footer>
       </div>
-      <div class="right col col-sm-12 col-md-6 about" v-else-if="page === 'about'">
+      <div
+        class="right col col-sm-12 col-md-6 about"
+        v-else-if="page === 'about'"
+      >
         <p>
           We made this little game because we kept mixing up katakana and wanted
           a fun way to practice.
@@ -179,7 +190,7 @@ export default class App extends Vue {
   prevOptions: any = {}
 
   get isAppropriateDevice() {
-    return !('ontouchstart' in document.documentElement)
+    return !("ontouchstart" in document.documentElement)
   }
 
   async created() {
@@ -247,14 +258,16 @@ export default class App extends Vue {
 
     const prevScores = (
       await getDocs(
-        query(collection(db, "scores"), where("userId", "==", userId))
+        query(collection(db, "scores"), where("userId", "==", userId), where("name", "!=", null))
       )
-    ).docs.map(d => d.data()) as ServerScoreData[]
+    ).docs.map((d) => d.data()) as ServerScoreData[]
 
     this.onlinePlayer = {
       userId: userId,
-      prevScores: _.keyBy(prevScores, d => d.wordsetId),
+      prevScores: _.keyBy(prevScores, (d) => d.wordsetId),
     }
+
+    ;(window as any).onlinePlayer = this.onlinePlayer
   }
 
   destroyed() {
@@ -304,7 +317,7 @@ export default class App extends Vue {
   get defaultGameOptions(): GameOptions {
     return {
       wordsetIndex: 0,
-      voice: null
+      voice: null,
     }
   }
 
@@ -343,7 +356,6 @@ h1
   margin-bottom: 3rem
   color: #eee
   font-size: 2rem
-
 
 .wordsets h6
   color: lightgreen
@@ -390,5 +402,4 @@ h1
     border-top: 1px solid #ccc
     margin-top: 1rem
     max-width: 300px
-
 </style>
