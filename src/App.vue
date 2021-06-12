@@ -258,7 +258,7 @@ export default class App extends Vue {
 
     const prevScores = (
       await getDocs(
-        query(collection(db, "scores"), where("userId", "==", userId), where("name", "!=", null))
+        query(collection(db, "scores"), where("userId", "==", userId))
       )
     ).docs.map((d) => d.data()) as ServerScoreData[]
 

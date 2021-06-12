@@ -76,11 +76,11 @@
           <tr
             v-for="entry in leaderboard"
             :key="entry.id"
-            :class="{ mine: entry.id === onlinePlayer.userId }"
+            :class="{ mine: entry.userId === onlinePlayer.userId }"
           >
             <td v-if="entry.rank">{{ entry.rank }}.</td>
-            <td v-if="nameForLeaderboard && entry.userId === onlinePlayer.userId">
-              {{ nameForLeaderboard }}
+            <td v-if="entry.userId === onlinePlayer.userId">
+              {{ nameForLeaderboard || "You" }}
             </td>
             <td v-else>{{ entry.name }}</td>
             <td>{{ entry.score }}</td>
