@@ -17,10 +17,10 @@ export type WordsetDescriptor = {
 }
 
 export const wordsets = [
-  { type: "hiragana", id: "common", name: "Common Words" },
+  { type: "hiragana", id: "common", name: "N5 Vocab (Hiragana Only)" },
   { type: "katakana", id: "loanwords", name: "Loanwords" },
   { type: "katakana", id: "pokemon", name: "Pokémon Names" },
-  { type: "kanji", id: "n5vocab", name: "JLPT N5 Vocab" },
+  { type: "kanji", id: "n5vocab", name: "N5 Vocab" },
 ] as WordsetDescriptor[]
 
 export function getWords(id: WordsetId): WordsetItem[] {
