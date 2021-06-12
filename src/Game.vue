@@ -455,10 +455,11 @@ export default class Game extends Vue {
         }
       }
 
-      // Speak word as soon as the player has the right input for it
+      // Speak and complete word as soon as the player has the right input for it
       if (!word.alreadySpoken && tokenCompletion[tokenCompletion.length-1].remainingKana === "") {
         this.speak(word.wsi.kana||word.wsi.jp)
         word.alreadySpoken = true
+        this.submitAttempt()
       }
     }
 
