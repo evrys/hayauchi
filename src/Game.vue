@@ -483,18 +483,18 @@ export default class Game extends Vue {
     for (const word of this.words) {
       const tokenCompletion = jputil.matchAttemptToTokens(this.attempt, word.wsi.tokens)
       if (tokenCompletion.every(t => t.remainingKana.length === 0)) {
-        if (word.isSparkly) {
-          completedWords.push(...this.words)
-          sparklyClear = true
-          break
-        } else {
+        // if (word.isSparkly) {
+        //   completedWords.push(...this.words)
+        //   sparklyClear = true
+        //   break
+        // } else {
           completedWords.push(word)
-        }
+        // }
       }
     }
 
     for (const word of completedWords) {
-      if (!sparklyClear || word.isSparkly) {
+      // if (!sparklyClear || word.isSparkly) {
         this.floatScore += word.romaji.length * (word.isSparkly ? 2 : 1)
         this.kanaCompleted += (word.wsi.kana||word.wsi.jp).length
         const text = new PIXI.Text(word.wsi.en)
@@ -504,7 +504,7 @@ export default class Game extends Vue {
         text.x = word.obj.x
         text.y = word.obj.y
         this.translations.addChild(text)
-      }
+      // }
 
       this.removeWord(word)
     }
