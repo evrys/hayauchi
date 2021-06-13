@@ -113,6 +113,10 @@
             >Wikipedia</a
           >,
           <a
+            href="https://jlptsensei.com/jlpt-n3-vocabulary-list/"
+            >JLPT Sensei</a
+          >,
+          <a
             href="https://nihongoichiban.com/2011/04/30/complete-list-of-vocabulary-for-the-jlpt-n5/"
             >Nihongo Ichiban</a
           >, and the
@@ -120,11 +124,11 @@
           >.
         </p>
         <p>
-          Created by <a href="https://github.com/mispy">Mispy</a> &amp;
+          Created by <a href="https://github.com/tgle">Toggle</a> &amp;
           <a href="https://github.com/two-kay">Twokay</a>
         </p>
-        <a href="https://github.com/mispy/hayauchi"
-          >https://github.com/mispy/hayauchi</a
+        <a href="https://github.com/two-kay/hayauchi"
+          >https://github.com/two-kay/hayauchi</a
         >
         <footer>
           <button class="btn" @click="page = 'intro'">Back</button>

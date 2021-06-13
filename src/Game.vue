@@ -3,7 +3,15 @@
     <div class="game">
       <div class="canvasContainer">
         <canvas width="800" height="600" />
-        <Postgame v-if="gameOver" :onlinePlayer="onlinePlayer" :score="score" :kpm="kpm" :duration="timeTaken" :wordset="wordset" @exit="$emit('exit')"/>
+        <Postgame
+          v-if="gameOver"
+          :onlinePlayer="onlinePlayer"
+          :score="score"
+          :kpm="kpm"
+          :duration="timeTaken"
+          :wordset="wordset"
+          @exit="$emit('exit')"
+        />
       </div>
       <div class="under d-flex" v-if="!gameOver">
         <form @submit.prevent="submitAttempt">
@@ -17,12 +25,27 @@
           />
         </form>
         <ul class="stats d-flex ms-auto">
-          <li>Score: <span>{{ score }}</span></li>
-          <li>KPM: <span>{{ kpm }}</span></li>
-          <li>Misses: <span class="misses">{{ wordsMissed }}</span></li>
+          <li>
+            Score: <span>{{ score }}</span>
+          </li>
+          <li>
+            KPM: <span>{{ kpm }}</span>
+          </li>
+          <li>
+            Misses: <span class="misses">{{ wordsMissed }}</span>
+          </li>
           <li>Hints: Hold <span>Shift</span></li>
         </ul>
       </div>
+    </div>
+    <div class="wordhistory">
+      <ul>
+        <li v-for="word in wordHistory.slice(-8).reverse()" :key="word.jp">
+          <!-- <div class="romaji">{{ word.romaji }}</div> -->
+          <div class="jp">{{ word.jp }}</div>
+          <div class="en">{{ word.en }}</div>
+        </li>
+      </ul>
     </div>
   </main>
 </template>
@@ -32,15 +55,14 @@ import { Component, Prop, Ref, Vue, Watch } from "vue-property-decorator"
 import _, { times } from "lodash"
 import type { GameOptions, OnlinePlayer } from "./types"
 import * as PIXI from "pixi.js"
-import Postgame from './Postgame.vue'
-import * as wordsets from './wordsets'
+import Postgame from "./Postgame.vue"
+import * as wordsets from "./wordsets"
 import { WordsetItem } from "./wordsets"
-import { matchAttempt } from "./jputil"
-import * as jputil from './jputil'
+import * as jputil from "./jputil"
 
 // For debugging
-;import { containsKanji } from "hepburn"
-(window as any).jputil = jputil
+import { containsKanji } from "hepburn"
+;(window as any).jputil = jputil
 ;(window as any).wordsets = wordsets
 
 type Word = {
@@ -48,7 +70,7 @@ type Word = {
   romaji: string
   slot: number
   obj: PIXI.Container
-  tokenParts: TokenDisplayPart[],
+  tokenParts: TokenDisplayPart[]
   alreadySpoken: boolean
   isSparkly: boolean
 }
@@ -63,18 +85,26 @@ type TokenDisplayPart = {
   doneHintText: PIXI.Text
 }
 
+type WordHistoryItem = {
+  jp: string
+  en: string
+  romaji: string
+}
+
 @Component({
   components: { Postgame },
 })
 export default class Game extends Vue {
   @Prop({ type: Object, required: true }) options!: GameOptions
-  @Prop({ type: Object, default: null }) onlinePlayer!: OnlinePlayer|null
+  @Prop({ type: Object, default: null }) onlinePlayer!: OnlinePlayer | null
   @Ref() readonly attemptInput!: HTMLInputElement
 
   /** Words we can add to the game */
   potentialWords: WordsetItem[] = []
   /** Harder words we can use for sparkliness */
   potentialSparklies: WordsetItem[] = []
+
+  wordHistory: WordHistoryItem[] = []
 
   /** Next word to add from the wordset */
   nextWordIndex: number = 0
@@ -110,37 +140,43 @@ export default class Game extends Vue {
 
   readonly wordStyle = new PIXI.TextStyle({
     fill: "#ffffff",
-    fontSize: 26
+    fontSize: 26,
   })
   readonly sparklyWordStyle = new PIXI.TextStyle({
     fill: "#fff922",
     fontSize: 26,
     dropShadow: true,
-    dropShadowColor: '#fff922',
+    dropShadowColor: "#fff922",
     dropShadowBlur: 10,
-    dropShadowAngle: 2*Math.PI,
-    dropShadowDistance: 0
+    dropShadowAngle: 2 * Math.PI,
+    dropShadowDistance: 0,
   })
   readonly doneStyle = new PIXI.TextStyle({
     fill: "lightgreen",
-    fontSize: 26
+    fontSize: 26,
   })
   readonly warningStyle = new PIXI.TextStyle({
     fill: "#f1a52e",
-    fontSize: 26
+    fontSize: 26,
   })
   readonly hintStyle = new PIXI.TextStyle({
     fill: "#ffffff",
-    fontSize: 16
+    fontSize: 16,
   })
   readonly hintDoneStyle = new PIXI.TextStyle({
     fill: "lightgreen",
-    fontSize: 16
+    fontSize: 16,
   })
 
-  readonly wordHeight: number = PIXI.TextMetrics.measureText("waffles", this.wordStyle).height
-  readonly hintHeight: number = PIXI.TextMetrics.measureText("waffles", this.hintStyle).height
-  
+  readonly wordHeight: number = PIXI.TextMetrics.measureText(
+    "waffles",
+    this.wordStyle
+  ).height
+  readonly hintHeight: number = PIXI.TextMetrics.measureText(
+    "waffles",
+    this.hintStyle
+  ).height
+
   width: number = 800 / window.devicePixelRatio
   height: number = 600 / window.devicePixelRatio
   windowWidth: number = window.innerWidth
@@ -174,9 +210,14 @@ export default class Game extends Vue {
     ;(window as any).game = this
 
     const allWords = wordsets.getWords(this.wordset.id)
-    const wordsByLength = _.sortBy(allWords, wsi => -(wsi.kana||wsi.jp).length)
-    const numPotentialSparklies = Math.round(allWords.length/10) // A tenth of the wordset
-    this.potentialSparklies = _.shuffle(wordsByLength.slice(0, numPotentialSparklies))
+    const wordsByLength = _.sortBy(
+      allWords,
+      (wsi) => -(wsi.kana || wsi.jp).length
+    )
+    const numPotentialSparklies = Math.round(allWords.length / 10) // A tenth of the wordset
+    this.potentialSparklies = _.shuffle(
+      wordsByLength.slice(0, numPotentialSparklies)
+    )
     this.potentialWords = _.shuffle(wordsByLength.slice(numPotentialSparklies))
   }
 
@@ -194,7 +235,7 @@ export default class Game extends Vue {
 
     // Calculate how much we need to scale words by to have them fill the row
     // Leaving room for the romaji hint text above
-    this.wordScale = this.rowHeight / (this.wordHeight+this.hintHeight)
+    this.wordScale = this.rowHeight / (this.wordHeight + this.hintHeight)
 
     this.pixi.ticker.add(this.frame)
     this.attemptInput.focus()
@@ -247,8 +288,7 @@ export default class Game extends Vue {
 
   deactivateHints() {
     this.hintsActive = false
-    if (!this.gameOver)
-      this.$nextTick(() => this.attemptInput.focus())
+    if (!this.gameOver) this.$nextTick(() => this.attemptInput.focus())
   }
 
   onResize() {
@@ -273,7 +313,9 @@ export default class Game extends Vue {
     }
 
     // Pick the next word to show
-    const wsi = isSparkly ? this.potentialSparklies[this.nextSparklyIndex] : this.potentialWords[this.nextWordIndex]
+    const wsi = isSparkly
+      ? this.potentialSparklies[this.nextSparklyIndex]
+      : this.potentialWords[this.nextWordIndex]
     if (isSparkly) {
       this.nextSparklyIndex += 1
       if (this.nextSparklyIndex >= this.potentialSparklies.length) {
@@ -295,7 +337,6 @@ export default class Game extends Vue {
     wordObj.scale.y = this.wordScale
     this.pixi.stage.addChild(wordObj)
 
-
     const kanjiMode = containsKanji(wsi.jp)
 
     // wordObj.filters = [new GlowFilter({
@@ -305,7 +346,6 @@ export default class Game extends Vue {
     //   quality: 0.1
     // })];
 
-
     let lastTokenX = 0
     const tokenParts: TokenDisplayPart[] = []
     for (const token of wsi.tokens) {
@@ -313,10 +353,12 @@ export default class Game extends Vue {
       tokenObj.position.x = lastTokenX
       wordObj.addChild(tokenObj)
 
-
       // Each token is composed of two pixi parts. doneText
       // will become the green highlighted part that matches the romaji input
-      const remainingText = new PIXI.Text(token.jp, isSparkly ? this.sparklyWordStyle : this.wordStyle)
+      const remainingText = new PIXI.Text(
+        token.jp,
+        isSparkly ? this.sparklyWordStyle : this.wordStyle
+      )
       const doneText = new PIXI.Text("", this.doneStyle)
       doneText.position.y = this.hintHeight
       remainingText.position.y = this.hintHeight
@@ -327,23 +369,34 @@ export default class Game extends Vue {
       // In kanji mode this is furigana-style reading kana; in kana mode it's romaji
       const hintObj = new PIXI.Container()
       tokenObj.addChild(hintObj)
-  
-      const hintText = new PIXI.Text(kanjiMode ? token.kana : token.romaji, this.hintStyle)
+
+      const hintText = new PIXI.Text(
+        kanjiMode ? token.kana : token.romaji,
+        this.hintStyle
+      )
       hintText.alpha = 0.0
       hintObj.addChild(hintText)
 
       // Only used in kanji mode
       const doneHintText = new PIXI.Text("", this.hintDoneStyle)
       hintObj.addChild(doneHintText)
-      
-      // Center the hint text
-      hintObj.x = remainingText.width/2 - hintText.width/2
 
-      tokenParts.push({ token, tokenObj, remainingText, doneText, hintObj, hintText, doneHintText })
+      // Center the hint text
+      hintObj.x = remainingText.width / 2 - hintText.width / 2
+
+      tokenParts.push({
+        token,
+        tokenObj,
+        remainingText,
+        doneText,
+        hintObj,
+        hintText,
+        doneHintText,
+      })
       lastTokenX += remainingText.width
     }
 
-    const romaji = wsi.tokens.map(t => t.romaji).join("")
+    const romaji = wsi.tokens.map((t) => t.romaji).join("")
     this.words.push({
       wsi: wsi,
       romaji: romaji,
@@ -351,7 +404,7 @@ export default class Game extends Vue {
       obj: wordObj,
       tokenParts: tokenParts,
       alreadySpoken: false,
-      isSparkly: isSparkly
+      isSparkly: isSparkly,
     })
   }
 
@@ -367,7 +420,7 @@ export default class Game extends Vue {
         this.$emit("exit")
         return
       }
-  
+
       return
     }
 
@@ -381,16 +434,13 @@ export default class Game extends Vue {
 
     // Start ramping up difficulty faster
     if (this.score > 100) {
-      rate += (this.score-100)**1.1 / step
+      rate += (this.score - 100) ** 1.1 / step
     }
-
-
 
     // Drain score while using hints
     if (this.hintsActive) {
-      this.floatScore -= deltaTime/30
-      if (this.floatScore <= 0)
-        this.floatScore = 0
+      this.floatScore -= deltaTime / 30
+      if (this.floatScore <= 0) this.floatScore = 0
     }
 
     const missedWords: Word[] = []
@@ -405,11 +455,11 @@ export default class Game extends Vue {
       // Change to warning color for words which are nearing a miss
       if (!word.isSparkly && word.obj.x > this.width / 2) {
         for (const part of word.tokenParts) {
-          part.remainingText.style = this.warningStyle          
+          part.remainingText.style = this.warningStyle
         }
       }
 
-      // Update hint visibility if needed      
+      // Update hint visibility if needed
       for (const part of word.tokenParts) {
         part.hintText.alpha = this.hintsActive ? 1.0 : 0.0
       }
@@ -430,13 +480,16 @@ export default class Game extends Vue {
   @Watch("attempt")
   onAttemptChange() {
     for (const word of this.words) {
-      const tokenCompletion = jputil.matchAttemptToTokens(this.attempt, word.wsi.tokens)
-      
+      const tokenCompletion = jputil.matchAttemptToTokens(
+        this.attempt,
+        word.wsi.tokens
+      )
+
       for (let i = 0; i < tokenCompletion.length; i++) {
         const tc = tokenCompletion[i]
         const part = word.tokenParts[i]
 
-        if (word.wsi.tokens.every(t => t.isKanaOnly)) {
+        if (word.wsi.tokens.every((t) => t.isKanaOnly)) {
           part.doneText.text = tc.doneKana
           part.remainingText.text = tc.remainingKana
           part.remainingText.x = tc.doneKana.length ? part.doneText.width : 0
@@ -456,19 +509,20 @@ export default class Game extends Vue {
       }
 
       // Speak and complete word as soon as the player has the right input for it
-      if (!word.alreadySpoken && tokenCompletion[tokenCompletion.length-1].remainingKana === "") {
-        this.speak(word.wsi.kana||word.wsi.jp)
+      if (
+        !word.alreadySpoken &&
+        tokenCompletion[tokenCompletion.length - 1].remainingKana === ""
+      ) {
+        this.speak(word.wsi.kana || word.wsi.jp)
         word.alreadySpoken = true
         this.submitAttempt()
       }
     }
 
-
-
-      // const { donePart, remainingPart } = this.matchAttemptTo(word.wsi)
-      // word.doneText.text = donePart
-      // word.remainingText.text = remainingPart
-      // word.remainingText.x = donePart.length > 0 ? word.doneText.width : 0
+    // const { donePart, remainingPart } = this.matchAttemptTo(word.wsi)
+    // word.doneText.text = donePart
+    // word.remainingText.text = remainingPart
+    // word.remainingText.x = donePart.length > 0 ? word.doneText.width : 0
   }
 
   removeWord(word: Word) {
@@ -496,7 +550,7 @@ export default class Game extends Vue {
     for (const word of completedWords) {
       // if (!sparklyClear || word.isSparkly) {
         this.floatScore += word.romaji.length * (word.isSparkly ? 2 : 1)
-        this.kanaCompleted += (word.wsi.kana||word.wsi.jp).length
+        this.kanaCompleted += (word.wsi.kana || word.wsi.jp).length
         const text = new PIXI.Text(word.wsi.en)
         text.style = word.isSparkly ? this.sparklyWordStyle : this.wordStyle
         text.scale.x = this.wordScale
@@ -505,8 +559,13 @@ export default class Game extends Vue {
         text.y = word.obj.y
         this.translations.addChild(text)
       // }
-
+  
       this.removeWord(word)
+      this.wordHistory.push({
+        jp: word.wsi.jp,
+        en: word.wsi.en,
+        romaji: word.wsi.tokens.map((t) => t.romaji).join("")
+      })
     }
 
     this.attempt = ""
@@ -514,7 +573,7 @@ export default class Game extends Vue {
 
   get voice(): SpeechSynthesisVoice | null {
     const { options } = this
-    if (options.voice === 'none') return null
+    if (options.voice === "none") return null
 
     const jpvoices = speechSynthesis
       .getVoices()
@@ -549,13 +608,38 @@ export default class Game extends Vue {
 }
 </script>
 
-<style lang="sass">
+<style lang="sass" scoped>
 main
   margin: auto
   max-width: calc(100vw - 3rem)
+  display: flex
+
+.game
+  margin-left: 200px
+  margin-right: 200px
 
 .canvasContainer
   position: relative
+
+.wordhistory
+  min-width: 200px
+  max-width: 200px
+  margin-left: -200px
+  padding: 0
+
+  li
+    list-style-type: none
+    margin-bottom: 1rem
+    color: #aaa
+
+  .romaji
+    font-style: italic
+    font-size: 0.9rem
+
+  .jp
+    color: #6fb76f
+    font-size: 1.2rem
+
 
 .under
   padding-top: 1rem
