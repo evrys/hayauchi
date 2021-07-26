@@ -8,7 +8,7 @@ export type WordsetItem = {
   tokens: PhoneticToken[]
 }
 
-export type WordsetId = 'common'|'loanwords'|'pokemon'|'n5vocab'
+export type WordsetId = 'n5common'|'n4common'|'loanwords'|'pokemon'|'n5vocab'|'n4vocab'
 
 export type WordsetDescriptor = {
   type: 'hiragana'|'katakana'|'kanji'
@@ -17,29 +17,45 @@ export type WordsetDescriptor = {
 }
 
 export const wordsets = [
-  { type: "hiragana", id: "common", name: "N5 Vocab (Hiragana Only)" },
+  { type: "hiragana", id: "n5common", name: "N5 Vocab (Hiragana Only)" },
+  { type: "hiragana", id: "n4common", name: "N4 Vocab (Hiragana Only)" },
   { type: "katakana", id: "loanwords", name: "Loanwords" },
   { type: "katakana", id: "pokemon", name: "Pokémon Names" },
   { type: "kanji", id: "n5vocab", name: "N5 Vocab" },
+  { type: "kanji", id: "n4vocab", name: "N4 Vocab" }
 ] as WordsetDescriptor[]
 
 export function getWords(id: WordsetId): WordsetItem[] {
-  if (id === 'common')
-    return getCommonHiraganaVocab()
+  if (id === 'n5common')
+    return getCommonHiraganaVocab(5)
+  else if (id === 'n4common')
+  return getCommonHiraganaVocab(4)
   else if (id === 'loanwords')
     return getLoanwords()
   else if (id === 'pokemon')
     return getPokenames()
   else if (id === 'n5vocab')
-    return getN5KanjiVocab()
+    return getKanjiVocab(5)
+  else if (id === 'n4vocab')
+    return getKanjiVocab(4)
   else
     throw new Error(`Unknown wordset id ${id}`)
 }
 
 // @ts-ignore
 import n5HiraganaRows from '../data/JLPT5_Hiragana.tsv'
-export function getCommonHiraganaVocab(): WordsetItem[] {
-  const rows = n5HiraganaRows as [string, string][]
+// @ts-ignore
+import n4HiraganaRows from '../data/JLPT4_Hiragana.tsv'
+export function getCommonHiraganaVocab(level): WordsetItem[] {
+  let rows = null
+  switch (level) {
+    case 5:
+      rows = n5HiraganaRows as [string, string][]
+      break;
+    case 4:
+      rows = n4HiraganaRows as [string, string][]
+      break;
+  }
   return rows.slice(1).map(r => ({
     jp: r[0],
     en: r[1],
@@ -71,8 +87,18 @@ export function getLoanwords(): WordsetItem[] {
 
 // @ts-ignore
 import n5KanjiRows from '../data/JLPT5_Alignment.tsv'
-export function getN5KanjiVocab(): WordsetItem[] {
-  const rows = n5KanjiRows as [string, string, string, string][]
+// @ts-ignore
+import n4KanjiRows from '../data/JLPT4_Alignment.tsv'
+export function getKanjiVocab(level): WordsetItem[] {
+  let rows = null
+  switch (level) {
+    case 5:
+      rows = n5KanjiRows as [string, string, string, string][]
+      break;
+    case 4:
+      rows = n4KanjiRows as [string, string, string, string][]
+      break;
+  }
   return rows.slice(1).map(r => {
     const jpBits = r[0].split(" ")
     const kanaBits = r[1].split(" ")
@@ -96,6 +122,7 @@ export function getN5KanjiVocab(): WordsetItem[] {
     }
   })
 }
+
 // // @ts-ignore
 // import jlptrows from '../data/JLPT5_Vocab.tsv'
 // export function getJLPTVocab() {
