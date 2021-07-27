@@ -8,7 +8,7 @@ export type WordsetItem = {
   tokens: PhoneticToken[]
 }
 
-export type WordsetId = 'n5common'|'n4common'|'loanwords'|'pokemon'|'n5vocab'|'n4vocab'
+export type WordsetId = 'n5common'|'n4common'|'n3common'|'n2common'|'loanwords'|'pokemon'|'n5vocab'|'n4vocab'|'n3vocab'|'n2vocab'
 
 export type WordsetDescriptor = {
   type: 'hiragana'|'katakana'|'kanji'
@@ -17,35 +17,53 @@ export type WordsetDescriptor = {
 }
 
 export const wordsets = [
-  { type: "hiragana", id: "n5common", name: "N5 Vocab (Hiragana Only)" },
-  { type: "hiragana", id: "n4common", name: "N4 Vocab (Hiragana Only)" },
+  { type: "hiragana", id: "n5common", name: "N5 Hiragana" },
+  { type: "hiragana", id: "n4common", name: "N4 Hiragana" },
+  { type: "hiragana", id: "n3common", name: "N3 Hiragana" },
+  { type: "hiragana", id: "n2common", name: "N2 Hiragana" },
   { type: "katakana", id: "loanwords", name: "Loanwords" },
   { type: "katakana", id: "pokemon", name: "Pokémon Names" },
   { type: "kanji", id: "n5vocab", name: "N5 Vocab" },
-  { type: "kanji", id: "n4vocab", name: "N4 Vocab" }
+  { type: "kanji", id: "n4vocab", name: "N4 Vocab" },
+  { type: "kanji", id: "n3vocab", name: "N3 Vocab" },
+  { type: "kanji", id: "n2vocab", name: "N2 Vocab" }
 ] as WordsetDescriptor[]
 
 export function getWords(id: WordsetId): WordsetItem[] {
-  if (id === 'n5common')
-    return getCommonHiraganaVocab(5)
-  else if (id === 'n4common')
-  return getCommonHiraganaVocab(4)
-  else if (id === 'loanwords')
-    return getLoanwords()
-  else if (id === 'pokemon')
-    return getPokenames()
-  else if (id === 'n5vocab')
-    return getKanjiVocab(5)
-  else if (id === 'n4vocab')
-    return getKanjiVocab(4)
-  else
-    throw new Error(`Unknown wordset id ${id}`)
+  switch (id) {
+      case 'n5common':
+        return getCommonHiraganaVocab(5)
+      case 'n4common':
+        return getCommonHiraganaVocab(4)
+      case 'n3common':
+        return getCommonHiraganaVocab(3)
+      case 'n2common':
+        return getCommonHiraganaVocab(2)
+      case 'loanwords':
+        return getLoanwords()
+      case 'pokemon':
+        return getPokenames()
+      case 'n5vocab':
+        return getKanjiVocab(5)
+      case 'n4vocab':
+        return getKanjiVocab(4)
+      case 'n3vocab':
+        return getKanjiVocab(3)
+      case 'n2vocab':
+        return getKanjiVocab(2)
+      default:
+        throw new Error(`Unknown wordset id ${id}`)
+    }
 }
 
 // @ts-ignore
 import n5HiraganaRows from '../data/JLPT5_Hiragana.tsv'
 // @ts-ignore
 import n4HiraganaRows from '../data/JLPT4_Hiragana.tsv'
+// @ts-ignore
+import n3HiraganaRows from '../data/JLPT3_Hiragana.tsv'
+// @ts-ignore
+import n2HiraganaRows from '../data/JLPT2_Hiragana.tsv'
 export function getCommonHiraganaVocab(level): WordsetItem[] {
   let rows = null
   switch (level) {
@@ -54,6 +72,12 @@ export function getCommonHiraganaVocab(level): WordsetItem[] {
       break;
     case 4:
       rows = n4HiraganaRows as [string, string][]
+      break;
+    case 3:
+      rows = n3HiraganaRows as [string, string][]
+      break;
+    case 2:
+      rows = n2HiraganaRows as [string, string][]
       break;
   }
   return rows.slice(1).map(r => ({
@@ -89,6 +113,10 @@ export function getLoanwords(): WordsetItem[] {
 import n5KanjiRows from '../data/JLPT5_Alignment.tsv'
 // @ts-ignore
 import n4KanjiRows from '../data/JLPT4_Alignment.tsv'
+// @ts-ignore
+import n3KanjiRows from '../data/JLPT3_Alignment.tsv'
+// @ts-ignore
+import n2KanjiRows from '../data/JLPT2_Alignment.tsv'
 export function getKanjiVocab(level): WordsetItem[] {
   let rows = null
   switch (level) {
@@ -97,6 +125,12 @@ export function getKanjiVocab(level): WordsetItem[] {
       break;
     case 4:
       rows = n4KanjiRows as [string, string, string, string][]
+      break;
+    case 3:
+      rows = n3KanjiRows as [string, string, string, string][]
+      break;
+    case 2:
+      rows = n2KanjiRows as [string, string, string, string][]
       break;
   }
   return rows.slice(1).map(r => {
