@@ -127,8 +127,8 @@
           Created by <a href="https://github.com/tgle">Toggle</a> &amp;
           <a href="https://github.com/two-kay">Twokay</a>
         </p>
-        <a href="https://github.com/two-kay/hayauchi"
-          >https://github.com/two-kay/hayauchi</a
+        <a href="https://github.com/tgle/hayauchi"
+          >https://github.com/tgle/hayauchi</a
         >
         <footer>
           <button class="btn" @click="page = 'intro'">Back</button>
